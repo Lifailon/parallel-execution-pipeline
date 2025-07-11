@@ -7,11 +7,11 @@ Supports 2 operating modes:
 - Parallel execution of commands on one host.
 - Sequential execution of commands, but in parallel on multiple hosts.
 
-## Install
+## Launch
 
-To run in your environment, use SCM Git `https://github.com/Lifailon/parallel-execution-pipeline.git` (branch `main`) to download `Jenkinsfile.groovy` file and update parameters in job settings.
+To run in your environment, use SCM Git `https://github.com/Lifailon/parallel-execution-pipeline.git` (branch `main`) for download `Jenkinsfile.groovy` file and update the parameters in the job settings.
 
-## Plugins used
+## Plugins used (dependencies)
 
 - [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) to connect to remote hosts.
 - [AnsiColor](https://plugins.jenkins.io/ansicolor) to separate commands or hosts in the output by color.
