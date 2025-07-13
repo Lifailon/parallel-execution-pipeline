@@ -17,15 +17,20 @@ pipeline {
         timeout(time: 10, unit: 'MINUTES')
     }
     parameters {
-        booleanParam(
-            name: "parallel",
-            defaultValue: false,
-            description: 'Executing commands on multiple hosts in parallel (by default parallel execution of commands on first host).'
-        )
         text(
             name: 'addresses',
             defaultValue: '192.168.3.105\n192.168.3.106',
             description: 'List of remote host addresses.'
+        )
+        booleanParam(
+            name: "multiHosts",
+            defaultValue: false,
+            description: 'Executing commands on multiple hosts in parallel (by default parallel execution of commands on first host).'
+        )
+        string(
+            name: 'credentials',
+            defaultValue: '',
+            description: 'ID SSH Username with private key from Jenkins Credentials for ssh connection.'
         )
         string(
             name: 'user',
@@ -37,16 +42,15 @@ pipeline {
             defaultValue: '',
             description: 'Port for ssh connection (by default 22).'
         )
-        string(
-            name: 'credentials',
-            defaultValue: '',
-            description: 'ID from Jenkins Credentials for ssh connection.'
-        )
         text(
             name: 'commands',
-            // defaultValue: 'uname -a\nuptime\nfree -hL\ndf -hT'
             defaultValue: 'sleep 6 && echo Complete sleep 6 sec on $(hostname)\nsleep 8 && echo Complete sleep 8 sec on $(hostname)\nsleep 4 && echo Complete sleep 4 sec on $(hostname)',
             description: 'List of commands from a new line.'
+        )
+        booleanParam(
+            name: "color",
+            defaultValue: true,
+            description: 'Enable output coloring (used OpenSSH client on Agent).'
         )
     }
     environment {
@@ -89,7 +93,7 @@ pipeline {
         // Параллельное выполнение команд на первом хосте
         stage('Parallel execution of commands on first host') {
             when {
-                expression { ! params.parallel }
+                expression { ! params.multiHosts }
             }
             steps {
                 script {
@@ -109,14 +113,28 @@ pipeline {
                         def cmd = commandsList[i]
                         // Извлекаем порядковый номер индекса в цикличном массиве цветов для покраски вывода
                         def color = colors[i % colors.size()]
-                        // Добавляем покраску вывода между &&
-                        def cmdColor = cmd.replaceAll("&&", "&& echo -ne '${color}';")
-                        // Формируем команду с покраской вывода
-                        cmdColor = "echo -ne '${color}'; ${cmdColor}; echo -ne '${resetColor}'"
                         // Заполняем карту
                         mapParallelCommands["Command ${i+1}"] = {
                             try {
-                                sshCommand remote: remote, command: cmdColor
+                                if ( params.color ) {
+                                    // Дублирует вывод с покраской
+                                    // def output = sshCommand remote: remote, command: cmd
+                                    // echo "${color}${output}${resetColor}"
+                                    def output = sh(
+                                        script: """
+                                            ssh -o StrictHostKeyChecking=no \\
+                                                -i '${SSH_KEY_FILE}' \\
+                                                -p ${remote.port} \\
+                                                ${remote.user}@${address} \\
+                                                '${cmd}'
+                                        """,
+                                        returnStdout: true
+                                    )
+                                    // Добавляем покраску для вывод
+                                    echo "${color}${output}${resetColor}"
+                                } else {
+                                    sshCommand remote: remote, command: cmd
+                                }
                             } catch (err) {
                                 echo "${color}Error: ${err}${resetColor}"
                             }
@@ -131,7 +149,7 @@ pipeline {
         // Последовательное выполнение команд параллельно на нескольких хостах
         stage('Executing commands on multiple hosts in parallel') {
             when {
-                expression { params.parallel }
+                expression { params.multiHosts }
             }
             steps {
                 script {
@@ -154,10 +172,22 @@ pipeline {
                                 remote.host = address
                                 // Извлекаем и выполняем команду
                                 def cmd = commandsList[ci]
-                                def cmdColor = cmd.replaceAll("&&", "&& echo -ne '${color}';")
-                                cmdColor = "echo -ne '${color}'; ${cmdColor}; echo -ne '${resetColor}'"
                                 try {
-                                    sshCommand remote: remote, command: cmdColor
+                                    if ( params.color ) {
+                                        def output = sh(
+                                            script: """
+                                                ssh -o StrictHostKeyChecking=no \\
+                                                    -i '${SSH_KEY_FILE}' \\
+                                                    -p ${remote.port} \\
+                                                    ${remote.user}@${address} \\
+                                                    '${cmd}'
+                                            """,
+                                            returnStdout: true
+                                        )
+                                        echo "${color}${output}${resetColor}"
+                                    } else {
+                                        sshCommand remote: remote, command: cmd
+                                    }
                                 } catch (err) {
                                     echo "${color}Error: ${err}${resetColor}"
                                 }
