@@ -1,6 +1,6 @@
 # Parallel Execution Pipeline
 
-This is a simple Jenkins pipeline that I use in my home environment to automate execution commands on multiple remote hosts.
+This is a simple Jenkins Pipeline that I use in my home environment to automate execution commands on multiple remote hosts.
 
 Supports 2 operating modes:
 
@@ -9,12 +9,18 @@ Supports 2 operating modes:
 
 ## Launch
 
-To run in your environment, use SCM Git `https://github.com/Lifailon/parallel-execution-pipeline.git` (branch `main`) for download `Jenkinsfile.groovy` file and update the parameters in the job settings.
+To run in your environment, use SCM Git:
+
+- Repository URL: `https://github.com/Lifailon/parallel-execution-pipeline`
+- Branch: `main`
+- Script Path: `/parallel-execution-pipeline/Jenkinsfile_v2.groovy`
+
+In the settings, you need to fill in the ID for `SSH Username with private key` in the credentials parameter and update the list of hosts.
 
 ## Plugins used (dependencies)
 
-- [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) to connect to remote hosts.
-- [AnsiColor](https://plugins.jenkins.io/ansicolor) to separate commands or hosts in the output by color.
+- [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) for connect to remote hosts.
+- [AnsiColor](https://plugins.jenkins.io/ansicolor) (optional) for separate commands or hosts in the output by color.
 
 ## Execution examples
 

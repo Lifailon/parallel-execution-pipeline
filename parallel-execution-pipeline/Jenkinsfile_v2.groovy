@@ -27,10 +27,10 @@ pipeline {
             defaultValue: false,
             description: 'Executing commands on multiple hosts in parallel (by default parallel execution of commands on first host).'
         )
-        string(
+        credentials(
             name: 'credentials',
-            defaultValue: '',
-            description: 'ID SSH Username with private key from Jenkins Credentials for ssh connection.'
+            credentialType: 'SSH Username with private key',
+            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
         )
         string(
             name: 'user',
