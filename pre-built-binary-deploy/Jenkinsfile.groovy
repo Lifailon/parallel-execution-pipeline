@@ -10,8 +10,9 @@ def getArch = """
 def binName = ""
 def binPath = ""
 def binFullPath = ""
-def colorVersion = "echo -en '\033[32m'"
-def resetColorVersion = "echo -en '\033[0m'"
+def colorGreen = "\033[32m"
+def colorBlue = "\033[34m"
+def colorReset = "\033[0m"
 
 pipeline {
     agent any
@@ -190,12 +191,13 @@ pipeline {
                         ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/amd64 --to ${binName}-amd64
                         ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/arm64 --to ${binName}-arm64
                         ls -lhR;
-                        chmod +x ${binName}-${archAgent};
-                        v=\$(./${binName}-${archAgent} -v 2>/dev/null || ${binName}-${archAgent} --version);
-                        ${colorVersion};
-                        echo \$v;
-                        ${resetColorVersion}
+                        chmod +x ${binName}-${archAgent}
                     """
+                    def version = sh(
+                        script: "./${binName}-${archAgent} -v 2> /dev/null || ${binName}-${archAgent} --version",
+                        returnStdout: true
+                    ).trim()
+                    echo colorBlue+"Agent"+colorReset+" ==> "+colorGreen+version+colorReset
                 }
             }
         }
@@ -221,13 +223,11 @@ pipeline {
                             // Копируем файл на удаленный хост
                             sshPut remote: remote, from: "${binName}-${archRemoteHost}", into: binFullPath
                             // Выдаем права на выполнение и проверяем версию
-                            sshCommand remote: remote, command: """
-                                chmod +x ${binFullPath};
-                                v=\$(${binFullPath} -v 2>/dev/null || ${binFullPath} --version);
-                                ${colorVersion};
-                                echo \$v;
-                                ${resetColorVersion}
+                            def version = sshCommand remote: remote, command: """
+                                chmod +x ${binFullPath} > /dev/null;
+                                ${binFullPath} -v 2> /dev/null || ${binFullPath} --version
                             """
+                            echo colorBlue+address+colorReset+" ==> "+colorGreen+version+colorReset
                         }
                     }
                 }
