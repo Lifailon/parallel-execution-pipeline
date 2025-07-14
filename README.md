@@ -17,7 +17,7 @@ To run in your environment, use SCM Git:
 - Branch: `main`
 - Script Path: `parallel-execution-pipeline/Jenkinsfile_v2.groovy`
 
-In the settings, you need to create an `SSH Username with private key` to pass to the credentials parameter.
+Need to create an `SSH Username with private key` for pass to the credentials parameter.
 
 ## Plugins used (dependencies)
 
