@@ -10,10 +10,13 @@ def getArch = """
 def binName = ""
 def binPath = ""
 def binFullPath = ""
+def colorVersion = "echo -en '\033[32m'"
+def resetColorVersion = "echo -en '\033[0m'"
 
 pipeline {
     agent any
     options {
+        ansiColor('xterm')
         timeout(time: 10, unit: 'MINUTES')
     }
     parameters {
@@ -21,6 +24,35 @@ pipeline {
             name: 'repository',
             defaultValue: 'lifailon/lazyjournal',
             description: 'The address of the GitHub repository from which to download the binary.\nFormat: <USERNAME/REPOSITORY> or the binary name for uninstall'
+        )
+        reactiveChoice(
+            name: 'tags',
+            description: 'Select version (tag) on GitHub.',
+            choiceType: 'PT_SINGLE_SELECT',
+            filterable: true,
+            filterLength: 1,
+            script: [
+                $class: 'GroovyScript',
+                script: [
+                    sandbox: true,
+                    script: '''
+                        import groovy.json.JsonSlurper
+                        def selectedRepo = repository
+                        def apiUrl = "https://api.github.com/repos/${selectedRepo}/tags"
+                        def conn = new URL(apiUrl).openConnection()
+                        conn.setRequestProperty("User-Agent", "Jenkins")
+                        def response = conn.getInputStream().getText()
+                        def json = new JsonSlurper().parseText(response)
+                        def versionsCount = json.size()
+                        def data = []
+                        for (int i = 0; i < versionsCount; i++) {
+                            data += json.name[i]
+                        }
+                        return data
+                    '''
+                ]
+            ],
+            referencedParameters: 'repository'
         )
         booleanParam(
             name: "uninstall",
@@ -37,6 +69,11 @@ pipeline {
             defaultValue: '192.168.3.105\n192.168.3.106',
             description: 'List of remote host addresses for install.'
         )
+        credentials(
+            name: 'credentials',
+            credentialType: 'SSH Username with private key',
+            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
+        )
         string(
             name: 'user',
             defaultValue: '',
@@ -46,11 +83,6 @@ pipeline {
             name: 'port',
             defaultValue: '',
             description: 'Port for ssh connection (by default 22).'
-        )
-        credentials(
-            name: 'credentials',
-            credentialType: 'SSH Username with private key',
-            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
         )
     }
     environment {
@@ -155,11 +187,14 @@ pipeline {
                     binName = params.repository.split('/')[1]
                     // Загружаем исполняемый файл для двух архитектур
                     sh """
-                        ./${env.GITHUB_REPOSITORY} ${params.repository} --system linux/amd64 --to ${binName}-amd64
-                        ./${env.GITHUB_REPOSITORY} ${params.repository} --system linux/arm64 --to ${binName}-arm64
-                        ls -lhR
-                        chmod +x ${binName}-${archAgent}
-                        ./${binName}-${archAgent} -v || ${binName}-${archAgent} --version
+                        ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/amd64 --to ${binName}-amd64
+                        ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/arm64 --to ${binName}-arm64
+                        ls -lhR;
+                        chmod +x ${binName}-${archAgent};
+                        v=\$(./${binName}-${archAgent} -v 2>/dev/null || ${binName}-${archAgent} --version);
+                        ${colorVersion};
+                        echo \$v;
+                        ${resetColorVersion}
                     """
                 }
             }
@@ -187,7 +222,11 @@ pipeline {
                             sshPut remote: remote, from: "${binName}-${archRemoteHost}", into: binFullPath
                             // Выдаем права на выполнение и проверяем версию
                             sshCommand remote: remote, command: """
-                                chmod +x ${binFullPath} && ${binFullPath} -v || ${binFullPath} --version
+                                chmod +x ${binFullPath};
+                                v=\$(${binFullPath} -v 2>/dev/null || ${binFullPath} --version);
+                                ${colorVersion};
+                                echo \$v;
+                                ${resetColorVersion}
                             """
                         }
                     }
