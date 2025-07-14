@@ -7,15 +7,13 @@ Supports 2 operating modes:
 - Parallel execution of commands on one host.
 - Sequential execution of commands, but in parallel on multiple hosts.
 
-> The [first version](/parallel-execution-pipeline/Jenkinsfile_v1.groovy) use the [pussh](https://github.com/bearstech/pussh) script to execution commands in parallel on multiple hosts (not support running commands in parallel on a single host and output coloring).
-
 ## Launch
 
 To run in your environment, use SCM Git:
 
 - Repository URL: `https://github.com/Lifailon/parallel-execution-pipeline`
 - Branch: `main`
-- Script Path: `parallel-execution-pipeline/Jenkinsfile_v2.groovy`
+- Script Path: `parallel-execution-pipeline/Jenkinsfile.groovy`
 
 Need to create an `SSH Username with private key` for pass to the credentials parameter.
 
