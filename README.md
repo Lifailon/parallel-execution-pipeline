@@ -19,7 +19,7 @@ In the settings, you need to fill in the ID for `SSH Username with private key` 
 
 ## Plugins used (dependencies)
 
-- [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) for connect to remote hosts.
+- [SSH Pipeline steps](https://plugins.jenkins.io/ssh-steps) for extracting private key from credentials and connection to remote hosts in output coloring disabled mode (by default used `OpenSSH` client for correct output coloring).
 - [AnsiColor](https://plugins.jenkins.io/ansicolor) (optional) for separate commands or hosts in the output by color.
 
 ## Execution examples
