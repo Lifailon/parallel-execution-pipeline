@@ -4,19 +4,23 @@ import org.apache.http.util.EntityUtils
 import org.apache.http.HttpHeaders
 import groovy.json.JsonSlurper
 
-// Функция для извлечения учетных данных в Pipeline
+// Функция для извлечения учетных данных на сервере
 def getCred(credentials) {
-    def username = ""
-    def password = ""
-    withCredentials([usernamePassword(
-        credentialsId: credentials,
-        usernameVariable: 'USERNAME',
-        passwordVariable: 'PASSWORD'
-    )]) {
-        username = env.USERNAME
-        password = env.PASSWORD
+    def creds = com.cloudbees.plugins.credentials.CredentialsProvider
+        .lookupCredentials(
+            com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials.class,
+            Jenkins.instance
+        )
+        .find { it.id == credentials }
+    if (!creds) {
+        return ["Credentials not found"]
     }
-    return [username, password]
+    def username = creds.username
+    def password = creds.password.plainText
+    return [
+        username,
+        password
+    ]
 }
 
 // Функция для получения списка всех jobs
@@ -140,69 +144,23 @@ def exportJobsConfig(jenkinsUrl, username, password, jobsList, exportPath) {
     }
 }
 
-pipeline {
-    agent {
-        label 'built-in'
-    }
-    triggers {
-        cron('30 23 * * 1-6')
-    }
-    options {
-        timeout(time: 10, unit: 'MINUTES')
-    }
-    parameters {
-        string(
-            name: 'jenkinsUrl',
-            defaultValue: 'http://192.168.3.105:8080'
-        )
-        credentials(
-            name: 'credentials',
-            credentialType: 'Username with password	',
-            description: 'Username with password from Jenkins Credentials for API connection.'
-        )
-        booleanParam(
-            name: "export",
-            defaultValue: false,
-            description: 'Export config in artifacts.'
-        )
-    }
-    stages {
-        stage('Backup') {
-            steps {
-                script {
-                    if (!params.jenkinsUrl) {
-                        echo "Jenkins url not set"
-                        return
-                    }
-                    def creds = getCred(params.credentials)
-                    def username = creds[0]
-                    def password = creds[1]
-                    if (!username || !password) {
-                        echo "Credentials not found"
-                        return
-                    }
-                    def jobsList = getJobs(params.jenkinsUrl,username,password)
-                    if (!(jobsList instanceof List)) {
-                        echo jobsList
-                        return
-                    }
-                    def exportPath = ""
-                    if (params.export) {
-                        exportPath = "${env.WORKSPACE}/jobs-backup/"
-                    } else {
-                        exportPath = "/var/jenkins_home/jobs-backup/"
-                    }
-                    exportJobsConfig(params.jenkinsUrl, username, password, jobsList, exportPath)
-                }
-            }
-        }
-        stage('Export') {
-            when {
-                expression { params.export }
-            }
-            steps {
-                archiveArtifacts artifacts: "jobs-backup/**/*", allowEmptyArchive: true
-            }
-        }
-    }
+def jenkinsUrl = "http://192.168.3.105:8080"
+def credentials = "15d05be6-682a-472b-9c1d-cf5080e98170"
+
+if (!jenkinsUrl) {
+    return ["Jenkins url not set"]
 }
+def creds = getCred(credentials)
+def username = creds[0]
+def password = creds[1]
+if (!username || !password) {
+    return ["Credentials not found"]
+}
+
+def jobsList = getJobs(jenkinsUrl,username,password)
+if (!(jobsList instanceof List)) {
+    return [jobsList]
+}
+
+def exportPath = "/var/jenkins_home/jobs-backup/"
+exportJobsConfig(jenkinsUrl, username, password, jobsList, exportPath)
