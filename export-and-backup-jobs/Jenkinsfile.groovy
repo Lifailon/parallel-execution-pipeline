@@ -130,7 +130,8 @@ pipeline {
         )
         credentials(
             name: 'credentials',
-            defaultValue: '15d05be6-682a-472b-9c1d-cf5080e98170'
+            credentialType: 'Username with password	',
+            description: 'Username with password from Jenkins Credentials for API connection.'
         )
         booleanParam(
             name: "export",

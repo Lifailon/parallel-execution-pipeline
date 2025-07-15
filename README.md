@@ -34,8 +34,8 @@ sleep 4 && echo Complete sleep 4 sec on $(hostname)
 
 - Result of execution on one host:
 
-![](/.img/parallel-commands.jpg)
+![](/parallel-execution-pipeline/img/parallel-commands.jpg)
 
 - Result of execution on two hosts:
 
-![](/.img/parallel-hosts.jpg)
+![](/parallel-execution-pipeline/img/parallel-hosts.jpg)
