@@ -1,0 +1,172 @@
+def remote = [:]
+
+pipeline {
+    agent any
+    parameters {
+        string(
+            name: 'address',
+            defaultValue: '192.168.3.105',
+            description: 'IP or FQDN remote host.'
+        )
+        credentials(
+            name: 'credentials',
+            defaultValue: '',
+            credentialType: 'Username with password	',
+            description: 'Username with password from Jenkins Credentials for ssh connection.'
+        )
+        string(
+            name: 'port',
+            defaultValue: '',
+            description: 'SSH port (by default 22).'
+        )
+        booleanParam(
+            name: 'getUsers',
+            defaultValue: true,
+            description: 'Get list of current users in the remote system.'
+        )
+    }
+    stages {
+        stage('Get ssh credentials') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: params.credentials, usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS')]) {
+                        remote.name = params.address
+                        remote.host = params.address
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.user = env.SSH_USER
+                        remote.password = env.SSH_PASS
+                        remote.allowAnyHosts = true
+                    }
+                }
+            }
+        }
+        stage('Update user list and parameters') {
+            when {
+                expression { params.getUsers }
+            }
+            steps {
+                script {
+                    def users = sshCommand(
+                        remote: remote,
+                        command: "echo \$(ls /home)"
+                    )
+                    def usersList = users.trim().split("\\s")
+                    usersList += "root"
+                    def usersListChoice = usersList.toList()
+                    properties([
+                        parameters([
+                            string(
+                                name: 'address',
+                                defaultValue: '192.168.3.105',
+                                description: 'IP or FQDN remote host.'
+                            ),
+                            credentials(
+                                name: 'credentials',
+                                defaultValue: "${params.credentials}",
+                                credentialType: 'Username with password	',
+                                description: 'Username with password from Jenkins Credentials for ssh connection.'
+                            ),
+                            string(
+                                name: 'port',
+                                defaultValue: "${remote.port}",
+                                description: 'SSH port (by default 22).'
+                            ),
+                            booleanParam(
+                                name: 'getUsers',
+                                defaultValue: false,
+                                description: 'Get list of current users in the remote system.'
+                            ),
+                            choice(
+                                name: 'userList',
+                                choices: usersListChoice,
+                                description: 'List of available users'
+                            ),
+                            password(
+                                name: 'sshKey',
+                                defaultValue: '',
+                                description: 'Public ssh key for add to authorized_keys.'
+                            ),
+                            booleanParam(
+                                name: 'rewriteKey',
+                                defaultValue: false,
+                                description: 'Overwrite current keys in authorized_keys file.'
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
+        stage('Update authorized_keys') {
+            when {
+                expression { !params.getUsers && params.sshKey }
+            }
+            steps {
+                script {
+                    writeFile(
+                        file: "key.txt",
+                        text: "${params.sshKey}\n"
+                    )
+                    sshPut(
+                        remote: remote,
+                        from: "key.txt",
+                        into: "./.ssh/key.txt"
+                    )
+                    def selectedUser = params.userList
+                    def path = ""
+                    if (selectedUser == "root") {
+                        path = "/root/.ssh/authorized_keys"
+                    } else {
+                        path = "/home/${selectedUser}/.ssh/authorized_keys"
+                    }
+                    def teeCommand = ""
+                    if (params.rewriteKey) {
+                        teeCommand = "tee"
+                    } else {
+                        teeCommand = "tee -a"
+                    }
+                    sshCommand(
+                        remote: remote,
+                        command: """
+                            mkdir -p .ssh;
+                            cat ./.ssh/key.txt | $teeCommand $path > /dev/null
+                            rm ./.ssh/key.txt
+                            ls -lh ./.ssh
+                        """
+                    )
+                    properties([
+                        parameters([
+                            string(
+                                name: 'address',
+                                defaultValue: '192.168.3.105',
+                                description: 'IP or FQDN remote host.'
+                            ),
+                            credentials(
+                                name: 'credentials',
+                                defaultValue: '',
+                                credentialType: 'Username with password	',
+                                description: 'Username with password from Jenkins Credentials for ssh connection.'
+                            ),
+                            string(
+                                name: 'port',
+                                defaultValue: '',
+                                description: 'SSH port (by default 22).'
+                            ),
+                            booleanParam(
+                                name: 'getUsers',
+                                defaultValue: true,
+                                description: 'Get list of current users in the remote system.'
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh "rm -f key.txt"
+            }
+        }
+    }
+}
