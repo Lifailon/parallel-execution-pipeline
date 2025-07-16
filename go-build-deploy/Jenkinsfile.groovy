@@ -14,7 +14,7 @@ def getArch = """
 """
 
 def appVersion = ""
-def getVersion = "go run main.go -v 2>/dev/null || go run main.go --version"
+def getVersion = "go run ./... -v 2>/dev/null || go run ./... --version"
 
 def archList = ["amd64","arm64"]
 def osList = ["linux","darwin","openbsd","freebsd","windows"]
@@ -149,7 +149,7 @@ pipeline {
                     appVersion = parseVersion(currentVersion)
                     echo "App version for binary name: ${colorGreen}${appVersion}${colorReset}"
                     def getHelp = sh(
-                        script: "go run main.go -h 2>/dev/null || go run main.go --help",
+                        script: "go run ./... -h 2>/dev/null || go run ./... --help",
                         returnStdout: true
                     ).trim()
                     echo "App help:\n${getHelp}"
@@ -244,7 +244,7 @@ pipeline {
             steps {
                 script {
                     sh(script: """
-                            tmux new-session -d -s test-session "go run main.go"
+                            tmux new-session -d -s test-session "go run ./..."
                             sleep 1
                             tmux capture-pane -p
                             tmux kill-session -t test-session
