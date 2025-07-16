@@ -1,6 +1,6 @@
 # Parallel Execution Pipeline
 
-A set of simple and universal Jenkins Pipelines that I use in my home environment to automate base tasks.
+A set of universal Jenkins Pipelines that I use in my home environment to automate base tasks.
 
 - [Parallel Execution Pipeline](/parallel-execution-pipeline/README.md)
 - [Go Build and Deploy](/go-build-deploy/README.md)
@@ -15,7 +15,8 @@ To use any pipeline in your environment, use SCM Git:
 
 - Repository URL: `https://github.com/Lifailon/parallel-execution-pipeline`
 - Branch: `main`
-- Script Path: `<folder_name_pipeline>/Jenkinsfile.groovy` (example: `parallel-execution-pipeline/Jenkinsfile.groovy`)
+- Script Path: `<folder_name_pipeline>/Jenkinsfile.groovy`
+- - Example: `parallel-execution-pipeline/Jenkinsfile.groovy`
 
 ## Dependencies
 

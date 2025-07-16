@@ -36,14 +36,37 @@ pipeline {
     }
     parameters {
         string(
-            name: 'urlRepository',
+            name: 'repoUrl',
             defaultValue: 'https://github.com/Lifailon/lazyjournal',
             description: 'Url address for copying repository using Git.'
         )
-        string(
+        reactiveChoice(
             name: 'branch',
-            defaultValue: 'main',
-            description: 'Set the branch in the repository (by default main).'
+            description: 'Select branch.',
+            choiceType: 'PT_RADIO',
+            filterable: false,
+            script: [
+                $class: 'GroovyScript',
+                script: [
+                    sandbox: true,
+                    script: '''
+                        import groovy.json.JsonSlurper
+
+                        def repo = repoUrl.replaceAll("https://github.com/","https://api.github.com/repos/")
+                        def url = "${repo}/branches"
+                        def URL = new URL(url)
+                        def connection = URL.openConnection()
+                        connection.requestMethod = 'GET'
+                        connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                        def response = connection.inputStream.text
+
+                        def json = new JsonSlurper().parseText(response)
+                        def branches = json.collect { it.name }
+                        return branches as List
+                    '''
+                ]
+            ],
+            referencedParameters: 'repoUrl'
         )
         booleanParam(
             name: "update",
@@ -121,7 +144,7 @@ pipeline {
                     def branch = params.branch ? params.branch : "main"
                     checkout scmGit(
                         branches: [[name: branch]],
-                        userRemoteConfigs: [[url: params.urlRepository]]
+                        userRemoteConfigs: [[url: params.repoUrl]]
                     )
                     sh(script: "ls -lh")
                 }
@@ -130,7 +153,7 @@ pipeline {
         stage('Preparing application') {
             steps {
                 script {
-                    def urlSplit = params.urlRepository.split("/")
+                    def urlSplit = params.repoUrl.split("/")
                     binName = urlSplit[urlSplit.size() - 1]
                     echo "App name: ${colorGreen}${binName}${colorReset}"
                     sh(script: """
