@@ -1,4 +1,9 @@
 def remote = [:]
+
+def binName = ""
+def binPath = ""
+def binFullPath = ""
+
 def archAgent = ""
 def getArch = """
     ARCH=\$(uname -m)
@@ -7,17 +12,15 @@ def getArch = """
         aarch64)        echo arm64 ;;
     esac
 """
-def binName = ""
-def binPath = ""
-def binFullPath = ""
+
 def colorGreen = "\033[32m"
-def colorBlue = "\033[34m"
 def colorReset = "\033[0m"
 
 pipeline {
     agent any
     options {
         ansiColor('xterm')
+        timestamps()
         timeout(time: 10, unit: 'MINUTES')
     }
     parameters {
@@ -63,7 +66,7 @@ pipeline {
         string(
             name: 'binPath',
             defaultValue: './.local/bin',
-            description: 'Path to install on remote host (by default "./.local/bin")'
+            description: 'Path to install on remote host (by default "./.local/bin").'
         )
         text(
             name: 'addresses',
@@ -197,7 +200,7 @@ pipeline {
                         script: "./${binName}-${archAgent} -v 2> /dev/null || ${binName}-${archAgent} --version",
                         returnStdout: true
                     ).trim()
-                    echo colorBlue+"Agent"+colorReset+" ==> "+colorGreen+version+colorReset
+                    echo "Version on Agent: "+colorGreen+version+colorReset
                 }
             }
         }
@@ -227,7 +230,7 @@ pipeline {
                                 chmod +x ${binFullPath} > /dev/null;
                                 ${binFullPath} -v 2> /dev/null || ${binFullPath} --version
                             """
-                            echo colorBlue+address+colorReset+" ==> "+colorGreen+version+colorReset
+                            echo "Version on ${address}: "+colorGreen+version+colorReset
                         }
                     }
                 }
