@@ -14,6 +14,7 @@ pipeline {
     agent any
     options {
         ansiColor('xterm') // https://plugins.jenkins.io/ansicolor
+        timestamps()
         timeout(time: 10, unit: 'MINUTES')
     }
     parameters {
