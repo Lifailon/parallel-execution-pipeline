@@ -142,7 +142,7 @@ def exportJobsConfig(jenkinsUrl, username, password, jobsList, exportPath) {
 
 pipeline {
     agent {
-        label 'built-in'
+        label 'built-in' // Jenkins Server Agent
     }
     triggers {
         cron('30 23 * * 1-6')
@@ -154,8 +154,7 @@ pipeline {
         string(
             name: 'jenkinsUrl',
             defaultValue: 'http://192.168.3.105:8080',
-            description: 'Jenkins server address\nFormat: http[s]://<IP/HOSTNAME>:PORT.',
-            required: true
+            description: 'Jenkins server address\nFormat: http[s]://<IP/HOSTNAME>:PORT.'
         )
         credentials(
             name: 'credentials',
@@ -167,8 +166,7 @@ pipeline {
         booleanParam(
             name: "export",
             defaultValue: false,
-            description: 'Export config in artifacts.',
-            required: false
+            description: 'Export config in artifacts.'
         )
     }
     stages {
