@@ -2,7 +2,7 @@
 
 This is a universal Pipeline for building, testing and deployment any Go application.
 
-## Supports
+## Supported functions
 
 - Application preparation (basic Go command set) and and checking the launch.
 - Updating dependencies.
@@ -17,7 +17,7 @@ This is a universal Pipeline for building, testing and deployment any Go applica
 
 ![](/go-build-deploy/img/params.jpg)
 
-## Build:
+## Build
 
 ![](/go-build-deploy/img/build.jpg)
 

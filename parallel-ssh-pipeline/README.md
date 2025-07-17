@@ -6,6 +6,6 @@ Parallel execution of commands on multiple hosts (not support parallel execution
 
 ![](/parallel-ssh-pipeline/img/params.jpg)
 
-## Execution examples
+## Execution example
 
 ![](/parallel-ssh-pipeline/img/execution.jpg)
