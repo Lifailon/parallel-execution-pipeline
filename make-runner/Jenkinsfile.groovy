@@ -1,7 +1,9 @@
 def getVariables = "make -np | grep ':=' | grep -v '^#'"
 
 pipeline {
-    agent any
+    agent {
+        label 'local-agent' // Jenkins Agent with make installed
+    }
     options {
         timestamps()
         timeout(time: 10, unit: 'MINUTES')
@@ -200,6 +202,7 @@ pipeline {
                             )
                         }
                     }
+                    sh(script: "ls -lhR")
                 }
             }
         }
@@ -215,15 +218,15 @@ pipeline {
             }
         }
     }
-    // post {
-    //     always {
-    //         script {
-    //             sh """
-    //                 ls -lh 
-    //                 rm -rf "./* ${env.SSH_KEY_FILE}"
-    //                 ls -lh
-    //             """
-    //         }
-    //     }
-    // }
+    post {
+        always {
+            script {
+                sh """
+                    ls -lh 
+                    rm -rf ./*
+                    ls -lh
+                """
+            }
+        }
+    }
 }
