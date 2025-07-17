@@ -5,6 +5,7 @@ A set of universal Jenkins Pipelines that I use in my home environment to automa
 - [Parallel Execution Pipeline](/parallel-execution-pipeline/README.md)
 - [Go Build and Deploy](/go-build-deploy/README.md)
 - [Pre-built Binary Deploy](/pre-built-binary-deploy/README.md)
+- [Make Runner](/make-runner/README.md)
 - [Update authorized_keys](/update-authorized_keys/README.md)
 - [Export and Backup Jobs](/export-and-backup-jobs/README.md)
 - [Parallel SSH Pipeline](/parallel-ssh-pipeline/README.md)
