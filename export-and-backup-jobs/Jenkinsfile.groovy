@@ -153,17 +153,22 @@ pipeline {
     parameters {
         string(
             name: 'jenkinsUrl',
-            defaultValue: 'http://192.168.3.105:8080'
+            defaultValue: 'http://192.168.3.105:8080',
+            description: 'Jenkins server address\nFormat: http[s]://<IP/HOSTNAME>:PORT.',
+            required: true
         )
         credentials(
             name: 'credentials',
-            credentialType: 'Username with password	',
-            description: 'Username with password from Jenkins Credentials for API connection.'
+            credentialType: 'Username with password',
+            description: 'Username with password from Jenkins Credentials for API connection.',
+            defaultValue: '15d05be6-682a-472b-9c1d-cf5080e98170',
+            required: true
         )
         booleanParam(
             name: "export",
             defaultValue: false,
-            description: 'Export config in artifacts.'
+            description: 'Export config in artifacts.',
+            required: false
         )
     }
     stages {
