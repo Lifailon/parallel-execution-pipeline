@@ -4,6 +4,10 @@ This is a simple Jenkins pipeline to automate the delete and installation of any
 
 The pipeline downloads the latest version of `eget` on the agent, then downloads the binary of the selected version from the GitHub repository for two architectures (`amd64` and `arm64`) for Linux, for each remote machine determines the architecture, sends the binary to the remote host in the specified directory, grants execute permissions and checks the version.
 
+## Parameters
+
 ![](/pre-built-binary-deploy/img/params.jpg)
+
+## Installation log
 
 ![](/pre-built-binary-deploy/img/install.jpg)
