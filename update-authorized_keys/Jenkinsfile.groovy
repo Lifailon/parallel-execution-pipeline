@@ -20,12 +20,40 @@ pipeline {
             description: 'SSH port (by default 22).'
         )
         booleanParam(
+            name: 'checkHost',
+            defaultValue: true,
+            description: 'Checking host availability (icmp and tcp).'
+        )
+        booleanParam(
             name: 'getUsers',
             defaultValue: true,
             description: 'Get list of current users in the remote system.'
         )
     }
     stages {
+        stage('Checking host availability (icmp and tcp)') {
+            when {
+                expression { params.checkHost }
+            }
+            steps {
+                script {
+                    def check = sh(
+                        script: """
+                            ping -c 1 ${params.address} > /dev/null || exit 1
+                            nc -z ${params.address} ${params.port} || exit 2
+                        """,
+                        returnStatus: true
+                    )
+                    if (check == 1) {
+                        error("Host ${params.address} unavailable (icmp ping)")
+                    } else if (check == 2) {
+                        error("Port ${params.port} closed (tcp check)")
+                    } else {
+                        echo "Host ${params.address} available and port ${params.port} open"
+                    }
+                }
+            }
+        }
         stage('Get ssh credentials') {
             steps {
                 script {
@@ -70,6 +98,11 @@ pipeline {
                                 name: 'port',
                                 defaultValue: "${remote.port}",
                                 description: 'SSH port (by default 22).'
+                            ),
+                            booleanParam(
+                                name: 'checkHost',
+                                defaultValue: false,
+                                description: 'Checking host availability (icmp and tcp).'
                             ),
                             booleanParam(
                                 name: 'getUsers',
@@ -150,6 +183,11 @@ pipeline {
                                 name: 'port',
                                 defaultValue: '',
                                 description: 'SSH port (by default 22).'
+                            ),
+                            booleanParam(
+                                name: 'checkHost',
+                                defaultValue: true,
+                                description: 'Checking host availability (icmp and tcp).'
                             ),
                             booleanParam(
                                 name: 'getUsers',
