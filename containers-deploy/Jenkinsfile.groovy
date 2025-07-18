@@ -9,8 +9,8 @@ pipeline {
     }
     parameters {
         credentials(
-            name: 'credentials'
-            // credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey',
+            name: 'credentials',
+            credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey',
             required: true,
             description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
         )
@@ -49,27 +49,27 @@ pipeline {
         )
         string(
             name: 'node_exporter_port',
-            defaultValue: '9100',
+            defaultValue: '9100'
         )
         string(
             name: 'cadvisor_port',
-            defaultValue: '8080',
+            defaultValue: '8080'
         )
         string(
             name: 'logporter_port',
-            defaultValue: '9333',
+            defaultValue: '9333'
         )
         string(
             name: 'loki_promtail_port',
-            defaultValue: '9080',
+            defaultValue: '9080'
         )
         string(
             name: 'loki_server_addr',
-            defaultValue: 'http://192.168.3.105',
+            defaultValue: 'http://192.168.3.105'
         )
         string(
             name: 'loki_server_port',
-            defaultValue: '3100',
+            defaultValue: '3100'
         )
     }
     stages {
