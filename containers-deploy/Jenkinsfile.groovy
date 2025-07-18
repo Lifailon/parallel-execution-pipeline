@@ -10,9 +10,9 @@ pipeline {
     parameters {
         credentials(
             name: 'credentials'
-            credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey',
+            // credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey',
             required: true,
-            description: 'Credentials for connecting to remote hosts.'
+            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
         )
         choice(
             name: 'ansible_limit',

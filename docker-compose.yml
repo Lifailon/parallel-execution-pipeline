@@ -1,0 +1,20 @@
+# mkdir -p jenkins_agent && sudo chown -R 1000:1000 jenkins_agent
+
+services:
+  jenkins-agent:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: jenkins-agent
+    restart: unless-stopped
+    depends_on:
+      - jenkins-server
+    environment:
+      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
+      - JENKINS_SECRET=${JENKINS_SECRET}
+    user: "1000:1000"
+    volumes:
+      - ./jenkins_agent:/home/jenkins
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
