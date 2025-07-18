@@ -73,6 +73,19 @@ pipeline {
         )
     }
     stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    checkout scmGit(
+                        branches: [[name: "main"]],
+                        userRemoteConfigs: [[url: "https://github.com/Lifailon/parallel-execution-pipeline"]]
+                    )
+                    sh(script: "ls -lh")
+                    sh(script: "mv -f ./containers-deploy/* ./")
+                    sh(script: "ls -lh")
+                }
+            }
+        }
         stage('Run Ansible Playbook') {
             steps {
                 script {
