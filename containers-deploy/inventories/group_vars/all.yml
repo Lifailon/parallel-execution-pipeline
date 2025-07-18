@@ -1,0 +1,12 @@
+node_exporter: true
+cadvisor: true
+logporter: true
+loki_promtail: true
+
+node_exporter_port: "9100"
+cadvisor_port: "8080"
+logporter_port: "9333"
+loki_promtail_port: "9080"
+
+loki_server_addr: http://192.168.3.105
+loki_server_port: "3100"
