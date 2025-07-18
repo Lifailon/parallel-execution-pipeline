@@ -10,7 +10,7 @@ services:
     depends_on:
       - jenkins-server
     environment:
-      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_SERVER_URL=${JENKINS_SERVER_URL}
       - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
       - JENKINS_SECRET=${JENKINS_SECRET}
     user: "1000:1000"

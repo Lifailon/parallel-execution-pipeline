@@ -31,4 +31,4 @@ Plugins used in most pipelines:
 
 Need to create an `SSH Username with private key` for pass to the `credentials` parameter.
 
-To get all the Pipelines running, I use a [Dockerfile](/Dockerfile) with a predefined list of packages to run the Jenkins agent.
+To keep all Pipelines running, I use a [pre-configured image](/jenkins-agent/README.md) of Jenkins agent with a predefined list of packages.

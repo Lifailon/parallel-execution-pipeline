@@ -42,5 +42,5 @@ RUN ansible --version && \
     go version
 
 # Runtime variables are passed via environment (.env file) when running in docker compose
-# /opt/java/openjdk/bin/java -jar /usr/share/jenkins/agent.jar -secret $JENKINS_SECRET -name $JENKINS_AGENT_NAME -url $JENKINS_URL
+# /opt/java/openjdk/bin/java -jar /usr/share/jenkins/agent.jar -secret $JENKINS_SECRET -name $JENKINS_AGENT_NAME -url $JENKINS_SERVER_URL
 ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
