@@ -86,10 +86,10 @@ pipeline {
                     ]
                     echo "Selected containers: $containersArrSelected"
                     ansiblePlaybook(
-                        playbook: "/home/jenkins/workspace/ansible/playbooks/deploy.yml",
-                        inventory: "/home/jenkins/workspace/ansible/inventories/inventory.ini",
-                        // playbook: "./playbooks/deploy.yml",
-                        // inventory: "./inventories/inventory.ini",
+                        // playbook: "/home/jenkins/workspace/ansible/playbooks/deploy.yml",
+                        // inventory: "/home/jenkins/workspace/ansible/inventories/inventory.ini",
+                        playbook: "./playbooks/deploy.yml",
+                        inventory: "./inventories/inventory.ini",
                         limit: params.ansible_limit,
                         extraVars: [
                             ansible_port: params.ansible_port,
