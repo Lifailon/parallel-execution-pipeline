@@ -27,7 +27,7 @@ Plugins used in most pipelines:
 - [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) to extracting the private key from credentials and connection to remote hosts.
 - [AnsiColor](https://plugins.jenkins.io/ansicolor) (optional) to separate commands or hosts in the output by color.
 - [Active Choices](https://plugins.jenkins.io/uno-choice) to support the use of dynamic parameters.
-- [Ansible](https://plugins.jenkins.io/ansible) to support the use of dynamic parameters.
+- [Ansible](https://plugins.jenkins.io/ansible) to pass parameters to Ansible for projects that use templating.
 
 Need to create an `SSH Username with private key` for pass to the `credentials` parameter.
 

@@ -96,8 +96,8 @@ pipeline {
                         branches: [[name: "main"]],
                         userRemoteConfigs: [[url: "https://github.com/Lifailon/parallel-execution-pipeline"]]
                     )
-                    sh(script: "ls -lh")
-                    sh(script: "mv -f ./containers-deploy/* ./")
+                    sh(script: "rm -rf ./inventories ./playbooks")
+                    sh(script: "mv -f ./containers-deploy/inventories ./containers-deploy/playbooks ./containers-deploy/Jenkinsfile.groovy ./")
                     sh(script: "ls -lh")
                 }
             }
