@@ -4,11 +4,9 @@ services:
   jenkins-agent:
     build:
       context: .
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     container_name: jenkins-agent
     restart: unless-stopped
-    depends_on:
-      - jenkins-server
     environment:
       - JENKINS_URL=${JENKINS_SERVER_URL}
       - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
