@@ -47,3 +47,45 @@ services:
     ports:
       - {{ loki_promtail_port }}:9080
 {% endif %}
+
+{% if dozzle == true %}
+  dozzle-agent:
+    image: amir20/dozzle:latest
+    command: agent
+    container_name: dozzle-agent
+    environment:
+      - DOZZLE_HOSTNAME={{ inventory_hostname }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - {{ dozzle_port }}:7007
+{% endif %}
+
+{% if beszel == true %}
+  beszel-agent:
+    image: henrygd/beszel-agent:latest
+    container_name: beszel-agent
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      PORT: 45876
+      KEY: {{ beszel_key }}
+    ports:
+      - {{ beszel_port }}:45876
+{% endif %}
+
+{% if watchtower == true %}
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATIONS_HOSTNAME={{ inventory_hostname }}
+      - WATCHTOWER_NOTIFICATION_URL=telegram://{{ telegram_bot_api_key }}@telegram/?channels={{ telegram_chat_id }}
+    command: --interval 600
+{% endif %}

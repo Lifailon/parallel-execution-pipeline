@@ -31,6 +31,9 @@
         - "cadvisor"
         - "logporter"
         - "loki-promtail"
+        - "dozzle-agent"
+        - "beszel-agent"
+        - "watchtower"
       ignore_errors: yes
 
     # - name: Restart containers
@@ -48,3 +51,25 @@
         state: present
         recreate: always
         pull: always
+
+    - name: Get all containers info
+      community.docker.docker_host_info:
+        containers: yes
+      register: docker_host_info
+
+    - name: Get container IDs
+      set_fact:
+        container_ids: "{{ docker_host_info.containers | map(attribute='Id') | list }}"
+
+    - name: Get containers info for each container
+      community.docker.docker_container_info:
+        name: "{{ item }}"
+      loop: "{{ container_ids }}"
+      register: containers_info
+
+    - name: Get containers status
+      debug:
+        msg: "Container {{ item.container.Name }} => {{ item.container.State.Status }}"
+      loop: "{{ containers_info.results }}"
+      loop_control:
+        label: "{{ item.container.Name }}"
