@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'local-agent'
+        label 'linux' // Jenkins Agent with Ansible installed
     }
     options {
         ansiColor('xterm')

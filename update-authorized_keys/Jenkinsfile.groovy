@@ -1,7 +1,9 @@
 def remote = [:]
 
 pipeline {
-    agent any
+    agent {
+        label 'linux' // Jenkins Agent with ping and nc installed (optional)
+    }
     parameters {
         string(
             name: 'address',
@@ -11,8 +13,9 @@ pipeline {
         credentials(
             name: 'credentials',
             defaultValue: '',
-            credentialType: 'Username with password	',
-            description: 'Username with password from Jenkins Credentials for ssh connection.'
+            description: 'Username with password from Jenkins Credentials for ssh connection.',
+            credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl',
+            required: true
         )
         string(
             name: 'port',
@@ -91,7 +94,6 @@ pipeline {
                             credentials(
                                 name: 'credentials',
                                 defaultValue: "${params.credentials}",
-                                credentialType: 'Username with password	',
                                 description: 'Username with password from Jenkins Credentials for ssh connection.'
                             ),
                             string(
@@ -176,8 +178,9 @@ pipeline {
                             credentials(
                                 name: 'credentials',
                                 defaultValue: '',
-                                credentialType: 'Username with password	',
-                                description: 'Username with password from Jenkins Credentials for ssh connection.'
+                                description: 'Username with password from Jenkins Credentials for ssh connection.',
+                                credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl',
+                                required: true
                             ),
                             string(
                                 name: 'port',

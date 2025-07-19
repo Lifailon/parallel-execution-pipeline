@@ -28,7 +28,9 @@ def parseVersion(text) {
 }
 
 pipeline {
-    agent any
+    agent {
+        label 'linux' // Jenkins Agent with Go installed
+    }
     options {
         ansiColor('xterm')
         timestamps()
@@ -115,8 +117,9 @@ pipeline {
         )
         credentials(
             name: 'credentials',
-            credentialType: 'SSH Username with private key',
-            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.'
+            description: 'SSH Username with private key from Jenkins Credentials for ssh connection.',
+            credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey',
+            required: true
         )
         string(
             name: 'user',
