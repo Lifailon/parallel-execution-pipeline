@@ -7,8 +7,9 @@ A set of universal Jenkins Pipelines that I use in my home environment to automa
 - [Make Runner](/make-runner/README.md)
 - [Pre-built Binary Deploy](/pre-built-binary-deploy/README.md)
 - [Update authorized_keys](/update-authorized_keys/README.md)
-- [Containers Deploy](containers-deploy/README.md)
+- [Container Build Deploy](/container-build-deploy/README.md)
 - [Export and Backup Jobs](/export-and-backup-jobs/README.md)
+- [Monitoring Agent Stack Deploy](/mon-agent-stack-deploy/README.md)
 - [Parallel SSH Pipeline](/parallel-ssh-pipeline/README.md)
 
 ## Launch
@@ -31,4 +32,4 @@ Plugins used in most pipelines:
 
 Need to create an `SSH Username with private key` for pass to the `credentials` parameter.
 
-To keep all Pipelines running, I use a [pre-configured image](/jenkins-agent/README.md) of Jenkins agent with a predefined list of packages.
+To keep all Pipelines running, I use a pre-configured [image](/jenkins-agent/README.md) of Jenkins agent with a predefined list of packages.

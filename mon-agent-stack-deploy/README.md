@@ -1,4 +1,4 @@
-# Containers Deploy
+# Monitoring Agent Stack Deploy
 
 Pipeline implements deployment of agents for monitoring metrics and logs from Linux systems and Docker containers using Ansible. Templating and parameterization are supported for the following agents:
 
@@ -12,8 +12,8 @@ Pipeline implements deployment of agents for monitoring metrics and logs from Li
 
 ## Parameters
 
-![](/containers-deploy/img/params.jpg)
+![](/mon-agent-stack-deploy/img/params.jpg)
 
 ## Deployment
 
-![](/containers-deploy/img/playbook-run.jpg)
+![](/mon-agent-stack-deploy/img/playbook-run.jpg)
