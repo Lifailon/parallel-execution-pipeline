@@ -9,6 +9,16 @@ pipeline {
     }
     parameters {
         string(
+            name: 'stackName',
+            defaultValue: 'jenkins-agent',
+            description: 'Directory name or full path to store the stack.'
+        )
+        booleanParam(
+            name: "build",
+            defaultValue: true,
+            description: 'Use pre-build (pass path in "urlDockerfile" parameter).'
+        )
+        string(
             name: 'urlDockerfile',
             defaultValue: 'https://raw.githubusercontent.com/Lifailon/parallel-execution-pipeline/refs/heads/main/jenkins-agent/Dockerfile',
             description: 'URL of Dockerfile for build.'
@@ -93,16 +103,19 @@ pipeline {
             }
             steps {
                 script {
-                    sshCommand remote: remote, command: "mkdir -p ./jenkins-agent"
-                    sshCommand remote: remote, command: "curl -sSL ${params.urlDockerfile} -o ./jenkins-agent/Dockerfile"
-                    sshCommand remote: remote, command: "curl -sSL ${params.urlDockerCompose} -o ./jenkins-agent/docker-compose.yml"
-                    sshCommand remote: remote, command: "echo '${params.envParams}' > ./jenkins-agent/.env"
-                    commandsArr = params.commands.split('\n')
+                    sshCommand remote: remote, command: "mkdir -p ${params.stackName}"
+                    sshCommand remote: remote, command: "curl -sSL ${params.urlDockerCompose} -o ${params.stackName}/docker-compose.yml"
+                    sshCommand remote: remote, command: "echo '${params.envParams}' > ${params.stackName}/.env"
+                    def commandsArr = params.commands.split('\n')
                     for (command in commandsArr) {
                         sshCommand remote: remote, command: command
                     }
-                    // sshCommand remote: remote, command: "cd ./jenkins-agent && . ~/.bashrc && docker-compose up -d"
-                    sshCommand remote: remote, command: "cd ./jenkins-agent && bash -l -c 'docker-compose up -d --build'"
+                    if (params.build) {
+                        sshCommand remote: remote, command: "curl -sSL ${params.urlDockerfile} -o ${params.stackName}/Dockerfile"
+                        sshCommand remote: remote, command: "cd ${params.stackName} && bash -l -c 'docker-compose up -d --build'"
+                    } else {
+                        sshCommand remote: remote, command: "cd ${params.stackName} && bash -l -c 'docker-compose up -d'"
+                    }
                 }
             }
         }
