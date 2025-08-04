@@ -97,7 +97,12 @@ pipeline {
                         userRemoteConfigs: [[url: "https://github.com/Lifailon/parallel-execution-pipeline"]]
                     )
                     sh(script: "rm -rf ./inventories ./playbooks")
-                    sh(script: "mv -f ./containers-deploy/inventories ./containers-deploy/playbooks ./containers-deploy/Jenkinsfile.groovy ./")
+                    sh(script:
+                        "mv -f " +
+                        "./mon-agent-stack-deploy/inventories " +
+                        "./mon-agent-stack-deploy/playbooks " +
+                        "./"
+                    )
                     sh(script: "ls -lh")
                 }
             }
