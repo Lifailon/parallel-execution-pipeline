@@ -94,7 +94,9 @@ pipeline {
                             credentials(
                                 name: 'credentials',
                                 defaultValue: "${params.credentials}",
-                                description: 'Username with password from Jenkins Credentials for ssh connection.'
+                                description: 'Username with password from Jenkins Credentials for ssh connection.',
+                                credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl',
+                                required: true
                             ),
                             string(
                                 name: 'port',
@@ -118,7 +120,6 @@ pipeline {
                             ),
                             password(
                                 name: 'sshKey',
-                                defaultValue: '',
                                 description: 'Public ssh key for add to authorized_keys.'
                             ),
                             booleanParam(

@@ -125,15 +125,15 @@ pipeline {
             defaultValue: '',
             description: 'Set variables, each on a new line.\nFormat: "<KEY=VALUE>"'
         )
-        string(
-            name: 'uploadPath',
-            defaultValue: '',
-            description: 'Address for get targets from Makefile on GitHib.\nFormat: <USERNAME/REPOSITORY>.'
-        )
         booleanParam(
             name: "uploadArtifacts",
             defaultValue: false,
             description: "Upload files from selected path to Artifacts."
+        )
+        string(
+            name: 'uploadPath',
+            defaultValue: '',
+            description: 'Specify the path from where to download files.\nExample: bin/*'
         )
     }
     stages {
