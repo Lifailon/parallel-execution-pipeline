@@ -101,6 +101,7 @@ pipeline {
                         "mv -f " +
                         "./mon-agent-stack-deploy/inventories " +
                         "./mon-agent-stack-deploy/playbooks " +
+                        "./mon-agent-stack-deploy/ansible.cfg " +
                         "./"
                     )
                     sh(script: "ls -lh")
