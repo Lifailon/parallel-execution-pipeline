@@ -1,0 +1,282 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>address</string>
+        <string>credentials</string>
+        <string>port</string>
+        <string>getUsers</string>
+        <string>checkHost</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+    <org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction plugin="workflow-multibranch@810.v6b_6e77da_7058">
+      <jobPropertyDescriptors>
+        <string>hudson.model.ParametersDefinitionProperty</string>
+      </jobPropertyDescriptors>
+    </org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>address</name>
+          <description>IP or FQDN remote host.</description>
+          <defaultValue>192.168.3.105</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>Username with password from Jenkins Credentials for ssh connection.</description>
+          <defaultValue></defaultValue>
+          <credentialType>com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>port</name>
+          <description>SSH port (by default 22).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>checkHost</name>
+          <description>Checking host availability (icmp and tcp).</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>getUsers</name>
+          <description>Get list of current users in the remote system.</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def remote = [:]
+
+pipeline {
+    agent {
+        label &apos;linux&apos; // Jenkins Agent with ping and nc installed (optional)
+    }
+    parameters {
+        string(
+            name: &apos;address&apos;,
+            defaultValue: &apos;192.168.3.105&apos;,
+            description: &apos;IP or FQDN remote host.&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Username with password from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl&apos;,
+            required: true
+        )
+        string(
+            name: &apos;port&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;SSH port (by default 22).&apos;
+        )
+        booleanParam(
+            name: &apos;checkHost&apos;,
+            defaultValue: true,
+            description: &apos;Checking host availability (icmp and tcp).&apos;
+        )
+        booleanParam(
+            name: &apos;getUsers&apos;,
+            defaultValue: true,
+            description: &apos;Get list of current users in the remote system.&apos;
+        )
+    }
+    stages {
+        stage(&apos;Checking host availability (icmp and tcp)&apos;) {
+            when {
+                expression { params.checkHost }
+            }
+            steps {
+                script {
+                    def check = sh(
+                        script: &quot;&quot;&quot;
+                            ping -c 1 ${params.address} &gt; /dev/null || exit 1
+                            nc -z ${params.address} ${params.port} || exit 2
+                        &quot;&quot;&quot;,
+                        returnStatus: true
+                    )
+                    if (check == 1) {
+                        error(&quot;Host ${params.address} unavailable (icmp ping)&quot;)
+                    } else if (check == 2) {
+                        error(&quot;Port ${params.port} closed (tcp check)&quot;)
+                    } else {
+                        echo &quot;Host ${params.address} available and port ${params.port} open&quot;
+                    }
+                }
+            }
+        }
+        stage(&apos;Get ssh credentials&apos;) {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: params.credentials, usernameVariable: &apos;SSH_USER&apos;, passwordVariable: &apos;SSH_PASS&apos;)]) {
+                        remote.name = params.address
+                        remote.host = params.address
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.user = env.SSH_USER
+                        remote.password = env.SSH_PASS
+                        remote.allowAnyHosts = true
+                    }
+                }
+            }
+        }
+        stage(&apos;Update user list and parameters&apos;) {
+            when {
+                expression { params.getUsers }
+            }
+            steps {
+                script {
+                    def users = sshCommand(
+                        remote: remote,
+                        command: &quot;echo \$(ls /home)&quot;
+                    )
+                    def usersList = users.trim().split(&quot;\\s&quot;)
+                    usersList += &quot;root&quot;
+                    def usersListChoice = usersList.toList()
+                    properties([
+                        parameters([
+                            string(
+                                name: &apos;address&apos;,
+                                defaultValue: &apos;192.168.3.105&apos;,
+                                description: &apos;IP or FQDN remote host.&apos;
+                            ),
+                            credentials(
+                                name: &apos;credentials&apos;,
+                                defaultValue: &quot;${params.credentials}&quot;,
+                                description: &apos;Username with password from Jenkins Credentials for ssh connection.&apos;,
+                                credentialType: &apos;com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl&apos;,
+                                required: true
+                            ),
+                            string(
+                                name: &apos;port&apos;,
+                                defaultValue: &quot;${remote.port}&quot;,
+                                description: &apos;SSH port (by default 22).&apos;
+                            ),
+                            booleanParam(
+                                name: &apos;checkHost&apos;,
+                                defaultValue: false,
+                                description: &apos;Checking host availability (icmp and tcp).&apos;
+                            ),
+                            booleanParam(
+                                name: &apos;getUsers&apos;,
+                                defaultValue: false,
+                                description: &apos;Get list of current users in the remote system.&apos;
+                            ),
+                            choice(
+                                name: &apos;userList&apos;,
+                                choices: usersListChoice,
+                                description: &apos;List of available users&apos;
+                            ),
+                            password(
+                                name: &apos;sshKey&apos;,
+                                description: &apos;Public ssh key for add to authorized_keys.&apos;
+                            ),
+                            booleanParam(
+                                name: &apos;rewriteKey&apos;,
+                                defaultValue: false,
+                                description: &apos;Overwrite current keys in authorized_keys file.&apos;
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
+        stage(&apos;Update authorized_keys&apos;) {
+            when {
+                expression { !params.getUsers &amp;&amp; params.sshKey }
+            }
+            steps {
+                script {
+                    writeFile(
+                        file: &quot;key.txt&quot;,
+                        text: &quot;${params.sshKey}\n&quot;
+                    )
+                    sshPut(
+                        remote: remote,
+                        from: &quot;key.txt&quot;,
+                        into: &quot;./.ssh/key.txt&quot;
+                    )
+                    def selectedUser = params.userList
+                    def path = &quot;&quot;
+                    if (selectedUser == &quot;root&quot;) {
+                        path = &quot;/root/.ssh/authorized_keys&quot;
+                    } else {
+                        path = &quot;/home/${selectedUser}/.ssh/authorized_keys&quot;
+                    }
+                    def teeCommand = &quot;&quot;
+                    if (params.rewriteKey) {
+                        teeCommand = &quot;tee&quot;
+                    } else {
+                        teeCommand = &quot;tee -a&quot;
+                    }
+                    sshCommand(
+                        remote: remote,
+                        command: &quot;&quot;&quot;
+                            mkdir -p .ssh;
+                            cat ./.ssh/key.txt | $teeCommand $path &gt; /dev/null
+                            rm ./.ssh/key.txt
+                            ls -lh ./.ssh
+                        &quot;&quot;&quot;
+                    )
+                    properties([
+                        parameters([
+                            string(
+                                name: &apos;address&apos;,
+                                defaultValue: &apos;192.168.3.105&apos;,
+                                description: &apos;IP or FQDN remote host.&apos;
+                            ),
+                            credentials(
+                                name: &apos;credentials&apos;,
+                                defaultValue: &apos;&apos;,
+                                description: &apos;Username with password from Jenkins Credentials for ssh connection.&apos;,
+                                credentialType: &apos;com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl&apos;,
+                                required: true
+                            ),
+                            string(
+                                name: &apos;port&apos;,
+                                defaultValue: &apos;&apos;,
+                                description: &apos;SSH port (by default 22).&apos;
+                            ),
+                            booleanParam(
+                                name: &apos;checkHost&apos;,
+                                defaultValue: true,
+                                description: &apos;Checking host availability (icmp and tcp).&apos;
+                            ),
+                            booleanParam(
+                                name: &apos;getUsers&apos;,
+                                defaultValue: true,
+                                description: &apos;Get list of current users in the remote system.&apos;
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh &quot;rm -f key.txt&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

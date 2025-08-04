@@ -1,0 +1,223 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>envParams</string>
+        <string>address</string>
+        <string>build</string>
+        <string>credentials</string>
+        <string>port</string>
+        <string>stackName</string>
+        <string>urlDockerfile</string>
+        <string>urlDockerCompose</string>
+        <string>user</string>
+        <string>commands</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>stackName</name>
+          <description>Directory name or full path to store the stack.</description>
+          <defaultValue>jenkins-agent</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>build</name>
+          <description>Use pre-build (pass path in &quot;urlDockerfile&quot; parameter).</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>urlDockerfile</name>
+          <description>URL of Dockerfile for build.</description>
+          <defaultValue>https://raw.githubusercontent.com/Lifailon/parallel-execution-pipeline/refs/heads/main/jenkins-agent/Dockerfile</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>urlDockerCompose</name>
+          <description>URL of docker-compose.yml file for deployment.</description>
+          <defaultValue>https://raw.githubusercontent.com/Lifailon/parallel-execution-pipeline/refs/heads/main/jenkins-agent/docker-compose.yml</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>envParams</name>
+          <description>List of environment variables for .env file generation.</description>
+          <defaultValue>JENKINS_SERVER_URL=http://192.168.3.105:8080
+JENKINS_AGENT_NAME=agent-02
+JENKINS_SECRET=</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>commands</name>
+          <description>List of commands before build.</description>
+          <defaultValue>mkdir -p ./jenkins-agent/jenkins_agent
+sudo chown -R 1000:1000 ./jenkins-agent/jenkins_agent</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>address</name>
+          <description>Remote host address for deployment.</description>
+          <defaultValue>192.168.3.106</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>user</name>
+          <description>Username for ssh connection (by default from credentials parameter).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>port</name>
+          <description>Port for ssh connection (by default 22).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def remote = [:]
+
+pipeline {
+    agent any
+    options {
+        ansiColor(&apos;xterm&apos;)
+        timestamps()
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        string(
+            name: &apos;stackName&apos;,
+            defaultValue: &apos;jenkins-agent&apos;,
+            description: &apos;Directory name or full path to store the stack.&apos;
+        )
+        booleanParam(
+            name: &quot;build&quot;,
+            defaultValue: true,
+            description: &apos;Use pre-build (pass path in &quot;urlDockerfile&quot; parameter).&apos;
+        )
+        string(
+            name: &apos;urlDockerfile&apos;,
+            defaultValue: &apos;https://raw.githubusercontent.com/Lifailon/parallel-execution-pipeline/refs/heads/main/jenkins-agent/Dockerfile&apos;,
+            description: &apos;URL of Dockerfile for build.&apos;
+        )
+        string(
+            name: &quot;urlDockerCompose&quot;,
+            defaultValue: &quot;https://raw.githubusercontent.com/Lifailon/parallel-execution-pipeline/refs/heads/main/jenkins-agent/docker-compose.yml&quot;,
+            description: &apos;URL of docker-compose.yml file for deployment.&apos;
+        )
+        text(
+            name: &apos;envParams&apos;,
+            defaultValue: &apos;JENKINS_SERVER_URL=http://192.168.3.105:8080\nJENKINS_AGENT_NAME=agent-02\nJENKINS_SECRET=&apos;,
+            description: &apos;List of environment variables for .env file generation.&apos;
+        )
+        text(
+            name: &apos;commands&apos;,
+            defaultValue: &apos;mkdir -p ./jenkins-agent/jenkins_agent\nsudo chown -R 1000:1000 ./jenkins-agent/jenkins_agent&apos;,
+            description: &apos;List of commands before build.&apos;
+        )
+        string(
+            name: &apos;address&apos;,
+            defaultValue: &apos;192.168.3.106&apos;,
+            description: &apos;Remote host address for deployment.&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            description: &apos;SSH Username with private key from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey&apos;,
+            required: true
+        )
+        string(
+            name: &apos;user&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Username for ssh connection (by default from credentials parameter).&apos;
+        )
+        string(
+            name: &apos;port&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Port for ssh connection (by default 22).&apos;
+        )
+    }
+    environment {
+        SSH_KEY_FILE = &quot;/tmp/ssh_key_${UUID.randomUUID().toString()}&quot;
+    }
+    stages {
+        stage(&apos;Get ssh credentials&apos;) {
+            when {
+                expression { params.address &amp;&amp; params.credentials }
+            }
+            steps {
+                script {
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                usernameVariable: &apos;SSH_USER&apos;,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: env.SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${env.SSH_KEY_FILE}&quot;
+                        remote.name = params.address
+                        remote.host = params.address
+                        remote.user = params.user ? params.user : SSH_USER
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.identityFile = env.SSH_KEY_FILE
+                        remote.allowAnyHosts = true
+                    }
+                    echo &quot;SSH username: ${remote.user}&quot;
+                    echo &quot;SSH port: ${remote.port}&quot;
+                }
+            }
+        }
+        stage(&apos;Build and Deploy container&apos;) {
+            when {
+                expression { params.address &amp;&amp; params.credentials &amp;&amp; params.urlDockerfile &amp;&amp; params.urlDockerCompose }
+            }
+            steps {
+                script {
+                    sshCommand remote: remote, command: &quot;mkdir -p ${params.stackName}&quot;
+                    sshCommand remote: remote, command: &quot;curl -sSL ${params.urlDockerCompose} -o ${params.stackName}/docker-compose.yml&quot;
+                    sshCommand remote: remote, command: &quot;echo &apos;${params.envParams}&apos; &gt; ${params.stackName}/.env&quot;
+                    def commandsArr = params.commands.split(&apos;\n&apos;)
+                    for (command in commandsArr) {
+                        sshCommand remote: remote, command: command
+                    }
+                    if (params.build) {
+                        sshCommand remote: remote, command: &quot;curl -sSL ${params.urlDockerfile} -o ${params.stackName}/Dockerfile&quot;
+                        sshCommand remote: remote, command: &quot;cd ${params.stackName} &amp;&amp; bash -l -c &apos;docker-compose up -d --build&apos;&quot;
+                    } else {
+                        sshCommand remote: remote, command: &quot;cd ${params.stackName} &amp;&amp; bash -l -c &apos;docker-compose up -d&apos;&quot;
+                    }
+                }
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

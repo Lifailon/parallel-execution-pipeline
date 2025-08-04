@@ -1,0 +1,362 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>addresses</string>
+        <string>uninstall</string>
+        <string>credentials</string>
+        <string>port</string>
+        <string>repository</string>
+        <string>user</string>
+        <string>tags</string>
+        <string>binPath</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>repository</name>
+          <description>The address of the GitHub repository from which to download the binary.
+Format: &lt;USERNAME/REPOSITORY&gt; or the binary name for uninstall</description>
+          <defaultValue>lifailon/lazyjournal</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
+          <name>tags</name>
+          <description>Select version (tag) on GitHub.</description>
+          <randomName>choice-parameter-57452729646847</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1378.vf25626395f49">
+              <script>
+                        import groovy.json.JsonSlurper
+                        def selectedRepo = repository
+                        def apiUrl = &quot;https://api.github.com/repos/${selectedRepo}/tags&quot;
+                        def conn = new URL(apiUrl).openConnection()
+                        conn.setRequestProperty(&quot;User-Agent&quot;, &quot;Jenkins&quot;)
+                        def response = conn.getInputStream().getText()
+                        def json = new JsonSlurper().parseText(response)
+                        def versionsCount = json.size()
+                        def data = []
+                        for (int i = 0; i &lt; versionsCount; i++) {
+                            data += json.name[i]
+                        }
+                        return data
+                    </script>
+              <sandbox>true</sandbox>
+            </secureScript>
+          </script>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>repository</referencedParameters>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>true</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <hudson.model.BooleanParameterDefinition>
+          <name>uninstall</name>
+          <description>Delete binary on remote hosts.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>binPath</name>
+          <description>Path to install on remote host (by default &quot;./.local/bin&quot;).</description>
+          <defaultValue>./.local/bin</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>addresses</name>
+          <description>List of remote host addresses for install.</description>
+          <defaultValue>192.168.3.105
+192.168.3.106</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>user</name>
+          <description>Username for ssh connection (by default from credentials parameter).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>port</name>
+          <description>Port for ssh connection (by default 22).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def remote = [:]
+
+def binName = &quot;&quot;
+def binPath = &quot;&quot;
+def binFullPath = &quot;&quot;
+
+def archAgent = &quot;&quot;
+def getArch = &quot;&quot;&quot;
+    ARCH=\$(uname -m)
+    case \$ARCH in
+        x86_64|amd64)   echo amd64 ;;
+        aarch64)        echo arm64 ;;
+    esac
+&quot;&quot;&quot;
+
+def colorGreen = &quot;\033[32m&quot;
+def colorReset = &quot;\033[0m&quot;
+
+pipeline {
+    agent any
+    options {
+        ansiColor(&apos;xterm&apos;)
+        timestamps()
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        string(
+            name: &apos;repository&apos;,
+            defaultValue: &apos;lifailon/lazyjournal&apos;,
+            description: &apos;The address of the GitHub repository from which to download the binary.\nFormat: &lt;USERNAME/REPOSITORY&gt; or the binary name for uninstall&apos;
+        )
+        reactiveChoice(
+            name: &apos;tags&apos;,
+            description: &apos;Select version (tag) on GitHub.&apos;,
+            choiceType: &apos;PT_SINGLE_SELECT&apos;,
+            filterable: true,
+            filterLength: 1,
+            script: [
+                $class: &apos;GroovyScript&apos;,
+                script: [
+                    sandbox: true,
+                    script: &apos;&apos;&apos;
+                        import groovy.json.JsonSlurper
+                        def selectedRepo = repository
+                        def apiUrl = &quot;https://api.github.com/repos/${selectedRepo}/tags&quot;
+                        def conn = new URL(apiUrl).openConnection()
+                        conn.setRequestProperty(&quot;User-Agent&quot;, &quot;Jenkins&quot;)
+                        def response = conn.getInputStream().getText()
+                        def json = new JsonSlurper().parseText(response)
+                        def versionsCount = json.size()
+                        def data = []
+                        for (int i = 0; i &lt; versionsCount; i++) {
+                            data += json.name[i]
+                        }
+                        return data
+                    &apos;&apos;&apos;
+                ]
+            ],
+            referencedParameters: &apos;repository&apos;
+        )
+        booleanParam(
+            name: &quot;uninstall&quot;,
+            defaultValue: false,
+            description: &apos;Delete binary on remote hosts.&apos;
+        )
+        string(
+            name: &apos;binPath&apos;,
+            defaultValue: &apos;./.local/bin&apos;,
+            description: &apos;Path to install on remote host (by default &quot;./.local/bin&quot;).&apos;
+        )
+        text(
+            name: &apos;addresses&apos;,
+            defaultValue: &apos;192.168.3.105\n192.168.3.106&apos;,
+            description: &apos;List of remote host addresses for install.&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            description: &apos;SSH Username with private key from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey&apos;,
+            required: true
+        )
+        string(
+            name: &apos;user&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Username for ssh connection (by default from credentials parameter).&apos;
+        )
+        string(
+            name: &apos;port&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Port for ssh connection (by default 22).&apos;
+        )
+    }
+    environment {
+        GITHUB_USERNAME=&quot;zyedidia&quot;
+        GITHUB_REPOSITORY=&quot;eget&quot;
+        SSH_KEY_FILE = &quot;/tmp/ssh_key_${UUID.randomUUID().toString()}&quot;
+    }
+    stages {
+        stage(&apos;Get ssh credentials&apos;) {
+            steps {
+                script {
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                usernameVariable: &apos;SSH_USER&apos;,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: env.SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${env.SSH_KEY_FILE}&quot;
+                        remote.user = params.user ? params.user : SSH_USER
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.identityFile = env.SSH_KEY_FILE
+                        remote.allowAnyHosts = true
+                    }
+                    echo &quot;SSH username: ${remote.user}&quot;
+                    echo &quot;SSH port: ${remote.port}&quot;
+                }
+            }
+        }
+        stage(&apos;Delete binary on remote hosts&apos;) {
+            when {
+                expression { params.uninstall }
+            }
+            steps {
+                script {
+                    // Извлекаем название исполняемого файла
+                    binName = params.repository.split(&apos;/&apos;)[1] ? params.repository.split(&apos;/&apos;)[1] : params.repository
+                    // Проверяем путь из параметра или присваиваем значение по умолчанию
+                    binPath = params.binPath ? params.binPath : &quot;./.local/bin&quot;
+                    // Формируем полный путь до исполняемого файла
+                    binFullPath = binPath.replaceAll(&quot;/\$&quot;, &quot;&quot;) + &quot;/&quot; + binName
+                    // Получаем массив из списка хостов
+                    def addressList = params.addresses.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    // Проходимся по хостам
+                    for (int i = 0; i &lt; addressList.size(); i++) {
+                        // Извлекаем и заполняем имя хоста для подключения
+                        def address = addressList[i]
+                        remote.name = address
+                        remote.host = address
+                        catchError(buildResult: &apos;SUCCESS&apos;, stageResult: &apos;UNSTABLE&apos;) {
+                            // Удаляем файл
+                            sshCommand remote: remote, command: &quot;rm -f ${binFullPath}&quot;
+                        }
+                    }
+                }
+            }
+        }
+        stage(&apos;Install eget&apos;) {
+            when {
+                expression { ! params.uninstall }
+            }
+            steps {
+                script {
+                    // Определяем архитектуру на сборщике
+                    archAgent = sh(
+                        script: getArch,
+                        returnStdout: true
+                    ).trim()
+                    // Унифицированный способ для загрузки исполняемого файла из репозитория GitHub
+                    sh &quot;&quot;&quot;
+                        GITHUB_REPO_URL=https://github.com/${env.GITHUB_USERNAME}/${env.GITHUB_REPOSITORY}/releases
+                        GITHUB_LATEST_VERSION=\$(curl -L -sS -H &apos;Accept: application/json&apos; \$GITHUB_REPO_URL/latest | sed -e &apos;s/.*&quot;tag_name&quot;:&quot;\\([^&quot;]*\\)&quot;.*/\\1/&apos;)
+                        DOWNLOAD_BIN_URL=&quot;\$GITHUB_REPO_URL/download/\$GITHUB_LATEST_VERSION/${env.GITHUB_REPOSITORY}-\$(echo \$GITHUB_LATEST_VERSION | sed &apos;s/v//&apos;)-linux_${archAgent}.tar.gz&quot;
+                        ls -lh
+                        curl -sSL &quot;\$DOWNLOAD_BIN_URL&quot; -o ${env.GITHUB_REPOSITORY}.tar.gz
+                        ls -lh
+                        tar -xzf ${env.GITHUB_REPOSITORY}.tar.gz
+                        ls -lh ${env.GITHUB_REPOSITORY}-*
+                        cp ${env.GITHUB_REPOSITORY}-*/${env.GITHUB_REPOSITORY} ${env.GITHUB_REPOSITORY}
+                        ls -lh
+                        rm -rf eget-* eget.*
+                        ls -lh
+                        chmod +x ${env.GITHUB_REPOSITORY}
+                        ./${env.GITHUB_REPOSITORY} -v
+                    &quot;&quot;&quot;
+                }
+            }
+        }
+        stage(&apos;Download binary from GitHub repository&apos;) {
+            when {
+                expression { ! params.uninstall }
+            }
+            steps {
+                script {
+                    binName = params.repository.split(&apos;/&apos;)[1]
+                    // Загружаем исполняемый файл для двух архитектур
+                    sh &quot;&quot;&quot;
+                        ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/amd64 --to ${binName}-amd64
+                        ./${env.GITHUB_REPOSITORY} ${params.repository} --tag ${params.tags} --system linux/arm64 --to ${binName}-arm64
+                        ls -lhR;
+                        chmod +x ${binName}-${archAgent}
+                    &quot;&quot;&quot;
+                    def version = sh(
+                        script: &quot;./${binName}-${archAgent} -v 2&gt; /dev/null || ${binName}-${archAgent} --version&quot;,
+                        returnStdout: true
+                    ).trim()
+                    echo &quot;Version on Agent: &quot;+colorGreen+version+colorReset
+                }
+            }
+        }
+        stage(&apos;Transfer binary on remote hosts&apos;) {
+            when {
+                expression { ! params.uninstall }
+            }
+            steps {
+                script {
+                    binPath = params.binPath ? params.binPath : &quot;./.local/bin&quot;
+                    binFullPath = binPath.replaceAll(&quot;/\$&quot;, &quot;&quot;) + &quot;/&quot; + binName
+                    // Игнорируем ошибки
+                    catchError(buildResult: &apos;SUCCESS&apos;, stageResult: &apos;UNSTABLE&apos;) {
+                        def addressList = params.addresses.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                        for (int i = 0; i &lt; addressList.size(); i++) {
+                            def address = addressList[i]
+                            remote.name = address
+                            remote.host = address
+                            // Определяем архитектуру на удаленном хосте
+                            def archRemoteHost = sshCommand remote: remote, command: getArch
+                            // Создаем целевую директорию для установки (если отсутствует)
+                            sshCommand remote: remote, command: &quot;mkdir -p ${binPath}&quot;
+                            // Копируем файл на удаленный хост
+                            sshPut remote: remote, from: &quot;${binName}-${archRemoteHost}&quot;, into: binFullPath
+                            // Выдаем права на выполнение и проверяем версию
+                            def version = sshCommand remote: remote, command: &quot;&quot;&quot;
+                                chmod +x ${binFullPath} &gt; /dev/null;
+                                ${binFullPath} -v 2&gt; /dev/null || ${binFullPath} --version
+                            &quot;&quot;&quot;
+                            echo &quot;Version on ${address}: &quot;+colorGreen+version+colorReset
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh &quot;&quot;&quot;
+                    ls -lh 
+                    rm -f &quot;${env.SSH_KEY_FILE} ${env.GITHUB_REPOSITORY} ${binName}-*&quot;
+                    ls -lh
+                &quot;&quot;&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

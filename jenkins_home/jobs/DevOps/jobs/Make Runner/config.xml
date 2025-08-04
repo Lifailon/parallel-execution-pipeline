@@ -1,0 +1,409 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>silent</string>
+        <string>variables</string>
+        <string>dryRun</string>
+        <string>debug</string>
+        <string>keepGoing</string>
+        <string>parallel</string>
+        <string>uploadArtifacts</string>
+        <string>uploadPath</string>
+        <string>repo</string>
+        <string>ignoreErrors</string>
+        <string>branch</string>
+        <string>targets</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>repo</name>
+          <description>Address for get targets from Makefile on GitHib.
+Format: &lt;USERNAME/REPOSITORY&gt;.</description>
+          <defaultValue>Lifailon/lazyjournal</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
+          <name>branch</name>
+          <description>Select branch.</description>
+          <randomName>choice-parameter-57079525432448</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1378.vf25626395f49">
+              <script>
+                        import groovy.json.JsonSlurper
+
+                        def url = &quot;https://api.github.com/repos/${repo}/branches&quot;
+                        def URL = new URL(url)
+                        def connection = URL.openConnection()
+                        connection.requestMethod = &apos;GET&apos;
+                        connection.setRequestProperty(&quot;Accept&quot;, &quot;application/vnd.github.v3+json&quot;)
+                        def response = connection.inputStream.text
+
+                        def json = new JsonSlurper().parseText(response)
+                        def branches = json.collect { it.name }
+                        return branches as List
+                    </script>
+              <sandbox>true</sandbox>
+            </secureScript>
+          </script>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>repo</referencedParameters>
+          <choiceType>PT_RADIO</choiceType>
+          <filterable>false</filterable>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
+          <name>targets</name>
+          <description>Select version (tag) on GitHub.</description>
+          <randomName>choice-parameter-57079526624410</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1378.vf25626395f49">
+              <script>
+                        def getGitFiles(repo) {
+                            def url = &quot;https://api.github.com/repos/${repo}/contents&quot;
+                            def data = new URL(url).text
+                            def json = new groovy.json.JsonSlurper().parseText(data)
+                            files = []
+                            for (file in json) {
+                            	files += file.name
+                            }
+                            return files
+                        }
+                        
+                        def getMakefileTargets(repo,gitFiles) {
+                            def makeFile = &quot;&quot;
+                            def makefile = gitFiles.find{it == &quot;Makefile&quot;}
+                            if (makefile) {
+                                makefile = &quot;Makefile&quot;
+                            } else {
+                                def makefileCaseInsensitive = gitFiles.find { it.equalsIgnoreCase(&quot;makefile&quot;) }
+                                if (makefileCaseInsensitive) {
+                                    makefile = &quot;makefile&quot;
+                                } else {
+                                    println &quot;Makefile not found&quot;
+                                }
+                            }
+                        
+                            def rawMakefile = new URL(&quot;https://raw.githubusercontent.com/${repo}/refs/heads/main/${makefile}&quot;).text
+                            def linesArray = rawMakefile.readLines()
+                            def targets = linesArray.findAll { it =~ /^[a-zA-Z_-]+:/ }.collect { it.split(&apos;:&apos;)[0] }
+                            return targets
+                        }
+
+                        def gitFiles = getGitFiles(repo)
+                        getMakefileTargets(repo,gitFiles)
+                    </script>
+              <sandbox>true</sandbox>
+            </secureScript>
+          </script>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>repo</referencedParameters>
+          <choiceType>PT_CHECKBOX</choiceType>
+          <filterable>true</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <hudson.model.BooleanParameterDefinition>
+          <name>dryRun</name>
+          <description>Do not run any commands (recipes), just output them.</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>parallel</name>
+          <description>Parallel execution of all selected targets.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>ignoreErrors</name>
+          <description>Ignores errors within the commands (recipes) of the current target, but continues to execute the remaining commands in the same target.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>keepGoing</name>
+          <description>Keep going if some targets fail (ignores errors in targets).
+Used only for parallel mode.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>silent</name>
+          <description>Do not output executable commands (recipes).</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>debug</name>
+          <description>Print lots of debugging information.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>variables</name>
+          <description>Set variables, each on a new line.
+Format: &quot;&lt;KEY=VALUE&gt;&quot;</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>uploadArtifacts</name>
+          <description>Upload files from selected path to Artifacts.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>uploadPath</name>
+          <description>Specify the path from where to download files.
+Example: bin/*</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def getVariables = &quot;make -np | grep &apos;:=&apos; | grep -v &apos;^#&apos;&quot;
+
+pipeline {
+    agent {
+        label &apos;linux&apos; // Jenkins Agent with make installed
+    }
+    options {
+        timestamps()
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        string(
+            name: &apos;repo&apos;,
+            defaultValue: &apos;Lifailon/lazyjournal&apos;,
+            description: &apos;Address for get targets from Makefile on GitHib.\nFormat: &lt;USERNAME/REPOSITORY&gt;.&apos;
+        )
+        reactiveChoice(
+            name: &apos;branch&apos;,
+            description: &apos;Select branch.&apos;,
+            choiceType: &apos;PT_RADIO&apos;,
+            filterable: false,
+            script: [
+                $class: &apos;GroovyScript&apos;,
+                script: [
+                    sandbox: true,
+                    script: &apos;&apos;&apos;
+                        import groovy.json.JsonSlurper
+
+                        def url = &quot;https://api.github.com/repos/${repo}/branches&quot;
+                        def URL = new URL(url)
+                        def connection = URL.openConnection()
+                        connection.requestMethod = &apos;GET&apos;
+                        connection.setRequestProperty(&quot;Accept&quot;, &quot;application/vnd.github.v3+json&quot;)
+                        def response = connection.inputStream.text
+
+                        def json = new JsonSlurper().parseText(response)
+                        def branches = json.collect { it.name }
+                        return branches as List
+                    &apos;&apos;&apos;
+                ]
+            ],
+            referencedParameters: &apos;repo&apos;
+        )
+        reactiveChoice(
+            name: &apos;targets&apos;,
+            description: &apos;Select version (tag) on GitHub.&apos;,
+            choiceType: &apos;PT_CHECKBOX&apos;,
+            filterable: true,
+            filterLength: 1,
+            script: [
+                $class: &apos;GroovyScript&apos;,
+                script: [
+                    sandbox: true,
+                    script: &apos;&apos;&apos;
+                        def getGitFiles(repo) {
+                            def url = &quot;https://api.github.com/repos/${repo}/contents&quot;
+                            def data = new URL(url).text
+                            def json = new groovy.json.JsonSlurper().parseText(data)
+                            files = []
+                            for (file in json) {
+                            	files += file.name
+                            }
+                            return files
+                        }
+                        
+                        def getMakefileTargets(repo,gitFiles) {
+                            def makeFile = &quot;&quot;
+                            def makefile = gitFiles.find{it == &quot;Makefile&quot;}
+                            if (makefile) {
+                                makefile = &quot;Makefile&quot;
+                            } else {
+                                def makefileCaseInsensitive = gitFiles.find { it.equalsIgnoreCase(&quot;makefile&quot;) }
+                                if (makefileCaseInsensitive) {
+                                    makefile = &quot;makefile&quot;
+                                } else {
+                                    println &quot;Makefile not found&quot;
+                                }
+                            }
+                        
+                            def rawMakefile = new URL(&quot;https://raw.githubusercontent.com/${repo}/refs/heads/main/${makefile}&quot;).text
+                            def linesArray = rawMakefile.readLines()
+                            def targets = linesArray.findAll { it =~ /^[a-zA-Z_-]+:/ }.collect { it.split(&apos;:&apos;)[0] }
+                            return targets
+                        }
+
+                        def gitFiles = getGitFiles(repo)
+                        getMakefileTargets(repo,gitFiles)
+                    &apos;&apos;&apos;
+                ]
+            ],
+            referencedParameters: &apos;repo&apos;
+        )
+        booleanParam(
+            name: &quot;dryRun&quot;,
+            defaultValue: true,
+            description: &quot;Do not run any commands (recipes), just output them.&quot;
+        )
+        booleanParam(
+            name: &quot;parallel&quot;,
+            defaultValue: false,
+            description: &quot;Parallel execution of all selected targets.&quot;
+        )
+        booleanParam(
+            name: &quot;ignoreErrors&quot;,
+            defaultValue: false,
+            description: &quot;Ignores errors within the commands (recipes) of the current target, but continues to execute the remaining commands in the same target.&quot;
+        )
+        booleanParam(
+            name: &quot;keepGoing&quot;,
+            defaultValue: false,
+            description: &quot;Keep going if some targets fail (ignores errors in targets).\nUsed only for parallel mode.&quot;
+        )
+        booleanParam(
+            name: &quot;silent&quot;,
+            defaultValue: false,
+            description: &quot;Do not output executable commands (recipes).&quot;
+        )
+        booleanParam(
+            name: &quot;debug&quot;,
+            defaultValue: false,
+            description: &quot;Print lots of debugging information.&quot;
+        )
+        text(
+            name: &apos;variables&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Set variables, each on a new line.\nFormat: &quot;&lt;KEY=VALUE&gt;&quot;&apos;
+        )
+        booleanParam(
+            name: &quot;uploadArtifacts&quot;,
+            defaultValue: false,
+            description: &quot;Upload files from selected path to Artifacts.&quot;
+        )
+        string(
+            name: &apos;uploadPath&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Specify the path from where to download files.\nExample: bin/*&apos;
+        )
+    }
+    stages {
+        stage(&apos;Git checkout&apos;) {
+            when {
+                expression { params.repo &amp;&amp; params.branch }
+            }
+            steps {
+                script {
+                    currentBuild.displayName = &quot;#$BUILD_NUMBER Git checkout&quot;
+                    def branch = params.branch ? params.branch : &quot;main&quot;
+                    checkout scmGit(
+                        branches: [[name: branch]],
+                        userRemoteConfigs: [[url: &quot;https://github.com/${params.repo}&quot;]]
+                    )
+                    sh(script: &quot;ls -lh&quot;)
+                }
+            }
+        }
+        stage(&apos;Run make&apos;) {
+            when {
+                expression { params.repo &amp;&amp; params.branch &amp;&amp; params.targets }
+            }
+            steps {
+                script {
+                    def buildName = params.repo.split(&quot;/&quot;)[1]
+                    currentBuild.displayName = &quot;#$BUILD_NUMBER $buildName: $params.targets&quot;
+                    def options = &quot;&quot;
+                    if (params.dryRun) {
+                        options += &quot;-n &quot;
+                    }
+                    if (params.ignoreErrors) {
+                        options += &quot;-i &quot;
+                    }
+                    if (params.keepGoing) {
+                        options += &quot;-k &quot;
+                    }
+                    if (params.silent) {
+                        options += &quot;-s &quot;
+                    }
+                    if (params.debug) {
+                        options += &quot;-d &quot;
+                    }
+                    if (params.variables) {
+                        def vars = params.variables.trim().split(&apos;\n&apos;).join(&apos; &apos;)
+                        options += &quot;$vars &quot;
+                    }
+                    if (params.parallel) {
+                        currentBuild.displayName += &quot; (parallel mode)&quot;
+                        def targets = params.targets.replaceAll(&quot;,&quot;,&quot; &quot;)
+                        def jobsCount = params.targets.split(&quot;,&quot;).size()
+                        echo &quot;make $targets -j $jobsCount $options&quot;
+                        sh(
+                            script: &quot;&quot;&quot;
+                                make $targets -j $jobsCount $options
+                            &quot;&quot;&quot;
+                        )
+                    } else {
+                        def targets = params.targets.split(&quot;,&quot;)
+                        for (target in targets) {
+                            echo &quot;make $target $options&quot;
+                            sh(
+                                script: &quot;&quot;&quot;
+                                    make $target $options
+                                &quot;&quot;&quot;
+                            )
+                        }
+                    }
+                    sh(script: &quot;ls -lhR&quot;)
+                }
+            }
+        }
+        stage(&apos;Upload files&apos;) {
+            when {
+                expression { params.repo &amp;&amp; params.branch &amp;&amp; params.targets &amp;&amp; params.uploadPath &amp;&amp; params.uploadArtifacts }
+            }
+            steps {
+                script {
+                    archiveArtifacts artifacts: params.uploadPath,
+                    allowEmptyArchive: true
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh &quot;&quot;&quot;
+                    ls -lh 
+                    rm -rf ./*
+                    ls -lh
+                &quot;&quot;&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

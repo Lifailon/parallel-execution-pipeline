@@ -1,0 +1,292 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>addresses</string>
+        <string>color</string>
+        <string>credentials</string>
+        <string>port</string>
+        <string>multiHosts</string>
+        <string>user</string>
+        <string>commands</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.TextParameterDefinition>
+          <name>addresses</name>
+          <description>List of remote host addresses.</description>
+          <defaultValue>192.168.3.105
+192.168.3.106</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>multiHosts</name>
+          <description>Executing commands on multiple hosts in parallel (by default parallel execution of commands on first host).</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>user</name>
+          <description>Username for ssh connection (by default from credentials parameter).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>port</name>
+          <description>Port for ssh connection (by default 22).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>commands</name>
+          <description>List of commands from a new line.</description>
+          <defaultValue>sleep 6 &amp;&amp; echo Complete sleep 6 sec on $(hostname)
+sleep 8 &amp;&amp; echo Complete sleep 8 sec on $(hostname)
+sleep 4 &amp;&amp; echo Complete sleep 4 sec on $(hostname)</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>color</name>
+          <description>Enable output coloring (used OpenSSH client on Agent).</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def remote = [:]
+
+def resetColor = &apos;\033[0m&apos;
+def colors = [
+    &apos;\033[32m&apos;, // Зеленый
+    &apos;\033[34m&apos;, // Синий
+    &apos;\033[33m&apos;, // Желный
+    &apos;\033[36m&apos;, // Голубой
+    &apos;\033[31m&apos;, // Красный
+    &apos;\033[35m&apos;, // Пурпурный
+]
+
+pipeline {
+    agent any
+    options {
+        ansiColor(&apos;xterm&apos;) // https://plugins.jenkins.io/ansicolor
+        timestamps()
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        text(
+            name: &apos;addresses&apos;,
+            defaultValue: &apos;192.168.3.105\n192.168.3.106&apos;,
+            description: &apos;List of remote host addresses.&apos;
+        )
+        booleanParam(
+            name: &quot;multiHosts&quot;,
+            defaultValue: false,
+            description: &apos;Executing commands on multiple hosts in parallel (by default parallel execution of commands on first host).&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            description: &apos;SSH Username with private key from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey&apos;,
+            required: true
+        )
+        string(
+            name: &apos;user&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Username for ssh connection (by default from credentials parameter).&apos;
+        )
+        string(
+            name: &apos;port&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Port for ssh connection (by default 22).&apos;
+        )
+        text(
+            name: &apos;commands&apos;,
+            defaultValue: &apos;sleep 6 &amp;&amp; echo Complete sleep 6 sec on $(hostname)\nsleep 8 &amp;&amp; echo Complete sleep 8 sec on $(hostname)\nsleep 4 &amp;&amp; echo Complete sleep 4 sec on $(hostname)&apos;,
+            description: &apos;List of commands from a new line.&apos;
+        )
+        booleanParam(
+            name: &quot;color&quot;,
+            defaultValue: true,
+            description: &apos;Enable output coloring (used OpenSSH client on Agent).&apos;
+        )
+    }
+    environment {
+        SSH_KEY_FILE = &quot;/tmp/ssh_key_${UUID.randomUUID().toString()}&quot;
+    }
+    stages {
+        // Извлечение данных для авторизации по ключу
+        stage(&apos;Get ssh credentials&apos;) {
+            steps {
+                script {
+                    withCredentials(
+                        [
+                            // https://plugins.jenkins.io/ssh-steps
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                usernameVariable: &apos;SSH_USER&apos;,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        // Записываем содержимое приватного ключа во временный файл для использования в следующих шагах
+                        writeFile(
+                            file: env.SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${env.SSH_KEY_FILE}&quot;
+                        // remote.name = params.address
+                        // remote.host = params.address
+                        remote.user = params.user ? params.user : SSH_USER
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.identityFile = env.SSH_KEY_FILE
+                        remote.allowAnyHosts = true
+                    }
+                    echo &quot;SSH username: ${remote.user}&quot;
+                    echo &quot;SSH port: ${remote.port}&quot;
+                }
+            }
+        }
+        // Параллельное выполнение команд на первом хосте
+        stage(&apos;Parallel execution of commands on first host&apos;) {
+            when {
+                expression { ! params.multiHosts }
+            }
+            steps {
+                script {
+                    // Формируем массив из списка хостов (удаляем пробелы и пустые значения во всех элементах массива)
+                    def addressList = params.addresses.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    // Извлекаем первый хост из массива и заполняем имя для подключения
+                    def address = addressList[0]
+                    remote.name = address
+                    remote.host = address
+                    // Создаем карту для хранения массива команд
+                    def mapParallelCommands = [:]
+                    // Разбиваем текстовый параметр команд на массив из строк
+                    def commandsList = params.commands.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    // Формируем массив команд с параметрами запуска в ssh
+                    for (int i = 0; i &lt; commandsList.size(); i++) {
+                        // Извлекаем команду
+                        def cmd = commandsList[i]
+                        // Извлекаем порядковый номер индекса в цикличном массиве цветов для покраски вывода
+                        def color = colors[i % colors.size()]
+                        // Заполняем карту
+                        mapParallelCommands[&quot;Command ${i+1}&quot;] = {
+                            try {
+                                if ( params.color ) {
+                                    // Дублирует вывод с покраской
+                                    // def output = sshCommand remote: remote, command: cmd
+                                    // echo &quot;${color}${output}${resetColor}&quot;
+                                    def output = sh(
+                                        script: &quot;&quot;&quot;
+                                            ssh -o StrictHostKeyChecking=no \\
+                                                -i &apos;${SSH_KEY_FILE}&apos; \\
+                                                -p ${remote.port} \\
+                                                ${remote.user}@${address} \\
+                                                &apos;${cmd}&apos;
+                                        &quot;&quot;&quot;,
+                                        returnStdout: true
+                                    )
+                                    // Добавляем покраску для вывод
+                                    echo &quot;${color}${output}${resetColor}&quot;
+                                } else {
+                                    sshCommand remote: remote, command: cmd
+                                }
+                            } catch (err) {
+                                echo &quot;${color}Error: ${err}${resetColor}&quot;
+                            }
+                        }
+                    }
+                    // Запускаем параллельное выполнение всех команд
+                    parallel mapParallelCommands
+                    sleep 1
+                }
+            }
+        }
+        // Последовательное выполнение команд параллельно на нескольких хостах
+        stage(&apos;Executing commands on multiple hosts in parallel&apos;) {
+            when {
+                expression { params.multiHosts }
+            }
+            steps {
+                script {
+                    // Создаем пустую карту из списка хостов с одной командой в каждом значение
+                    def mapParallelCommands = [:]  
+                    // Получаем массив из списка команд и хостов
+                    def commandsList = params.commands.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    def addressList = params.addresses.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    // Проходимся по хостам
+                    for (int i = 0; i &lt; addressList.size(); i++) {
+                        // Извлекаем имя хоста для подключения
+                        def address = addressList[i]
+                        def color = colors[i % colors.size()]
+                        // Заполняем карту с циклом из всех команд (сихнронное выполнение) для параллельного выполнения на каждом хосте
+                        mapParallelCommands[address] = {
+                            // Запускаем команды синхронно
+                            for (int ci = 0; ci &lt; commandsList.size(); ci++) {
+                                // Обновляем имя хоста для каждой команды
+                                remote.name = address
+                                remote.host = address
+                                // Извлекаем и выполняем команду
+                                def cmd = commandsList[ci]
+                                try {
+                                    if ( params.color ) {
+                                        def output = sh(
+                                            script: &quot;&quot;&quot;
+                                                ssh -o StrictHostKeyChecking=no \\
+                                                    -i &apos;${SSH_KEY_FILE}&apos; \\
+                                                    -p ${remote.port} \\
+                                                    ${remote.user}@${address} \\
+                                                    &apos;${cmd}&apos;
+                                            &quot;&quot;&quot;,
+                                            returnStdout: true
+                                        )
+                                        echo &quot;${color}${output}${resetColor}&quot;
+                                    } else {
+                                        sshCommand remote: remote, command: cmd
+                                    }
+                                } catch (err) {
+                                    echo &quot;${color}Error: ${err}${resetColor}&quot;
+                                }
+                            }
+                        }
+                    }
+                    // Запускаем цикл из набора команд параллельно на каждом хосте
+                    parallel mapParallelCommands
+                    sleep 1
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                // Удалить временный файл с содержимым закрытого ключа на агенте
+                sh &quot;rm -f ${env.SSH_KEY_FILE}&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

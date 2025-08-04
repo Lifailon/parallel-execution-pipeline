@@ -1,0 +1,113 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>credentials</string>
+        <string>beszel_key</string>
+        <string>telegram_chat_id</string>
+        <string>ansible_limit</string>
+        <string>ansible_port</string>
+        <string>containers</string>
+        <string>loki_server</string>
+        <string>telegram_bot_api_key</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>ansible_limit</name>
+          <description>Select host group in inventory file.</description>
+          <choices>
+            <string>ARM</string>
+            <string>AMD</string>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ansible_port</name>
+          <description>Port for connecting to remote hosts.</description>
+          <defaultValue>22</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.8.8">
+          <name>containers</name>
+          <randomName>choice-parameter-60038851095130</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1378.vf25626395f49">
+              <script>
+                        return [
+                            &apos;node_exporter&apos;,
+                            &apos;cadvisor&apos;,
+                            &apos;logporter&apos;,
+                            &apos;loki_promtail&apos;,
+                            &apos;dozzle&apos;,
+                            &apos;beszel&apos;,
+                            &apos;watchtower&apos;
+                        ]
+                    </script>
+              <sandbox>true</sandbox>
+            </secureScript>
+          </script>
+          <choiceType>PT_CHECKBOX</choiceType>
+          <filterable>true</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+        <hudson.model.StringParameterDefinition>
+          <name>loki_server</name>
+          <defaultValue>http://192.168.3.105:3100</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>beszel_key</name>
+        </hudson.model.PasswordParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>telegram_bot_api_key</name>
+        </hudson.model.PasswordParameterDefinition>
+        <hudson.model.PasswordParameterDefinition>
+          <name>telegram_chat_id</name>
+        </hudson.model.PasswordParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@5.7.0">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>https://github.com/Lifailon/parallel-execution-pipeline</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>main</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>mon-agent-stack-deploy/Jenkinsfile.groovy</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

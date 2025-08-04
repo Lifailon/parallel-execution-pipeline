@@ -1,0 +1,560 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>repoUrl</string>
+        <string>addresses</string>
+        <string>upload</string>
+        <string>credentials</string>
+        <string>update</string>
+        <string>tmux</string>
+        <string>branch</string>
+        <string>deploy</string>
+        <string>binPath</string>
+        <string>build</string>
+        <string>port</string>
+        <string>testMode</string>
+        <string>liner</string>
+        <string>user</string>
+        <string>testName</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>repoUrl</name>
+          <description>Url address for copying repository using Git.</description>
+          <defaultValue>https://github.com/Lifailon/lazyjournal</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
+          <name>branch</name>
+          <description>Select branch.</description>
+          <randomName>choice-parameter-55974851986946</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1378.vf25626395f49">
+              <script>
+                        import groovy.json.JsonSlurper
+
+                        def repo = repoUrl.replaceAll(&quot;https://github.com/&quot;,&quot;https://api.github.com/repos/&quot;)
+                        def url = &quot;${repo}/branches&quot;
+                        def URL = new URL(url)
+                        def connection = URL.openConnection()
+                        connection.requestMethod = &apos;GET&apos;
+                        connection.setRequestProperty(&quot;Accept&quot;, &quot;application/vnd.github.v3+json&quot;)
+                        def response = connection.inputStream.text
+
+                        def json = new JsonSlurper().parseText(response)
+                        def branches = json.collect { it.name }
+                        return branches as List
+                    </script>
+              <sandbox>true</sandbox>
+            </secureScript>
+          </script>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>repoUrl</referencedParameters>
+          <choiceType>PT_RADIO</choiceType>
+          <filterable>false</filterable>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <hudson.model.BooleanParameterDefinition>
+          <name>update</name>
+          <description>Update dependencies.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>testMode</name>
+          <description>Select test mode.</description>
+          <choices>
+            <string>skip</string>
+            <string>selected</string>
+            <string>all</string>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>testName</name>
+          <description>Enter the test name separated by commas.</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>liner</name>
+          <description>Install and run all linter check (golangci, gocritic and gosec).</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>tmux</name>
+          <description>Check application launch in TMUX.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>build</name>
+          <description>Build binary for all platforms.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>upload</name>
+          <description>Upload all binary to Artifacts.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>deploy</name>
+          <description>Upload binary to remote hosts.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>addresses</name>
+          <description>List of remote host addresses for install.</description>
+          <defaultValue>192.168.3.105
+192.168.3.106</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>user</name>
+          <description>Username for ssh connection (by default from credentials parameter).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>port</name>
+          <description>Port for ssh connection (by default 22).</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>binPath</name>
+          <description>Path to install binary on remote hosts. (by default &quot;./.local/bin&quot;).</description>
+          <defaultValue>./.local/bin</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>def remote = [:]
+
+def binName = &quot;&quot;
+def binPath = &quot;&quot;
+def binFullPath = &quot;&quot;
+
+def archAgent = &quot;&quot;
+def getArch = &quot;&quot;&quot;
+    ARCH=\$(uname -m)
+    case \$ARCH in
+        x86_64|amd64)   echo amd64 ;;
+        aarch64)        echo arm64 ;;
+    esac
+&quot;&quot;&quot;
+
+def appVersion = &quot;&quot;
+def getVersion = &quot;go run ./... -v 2&gt;/dev/null || go run ./... --version&quot;
+
+def archList = [&quot;amd64&quot;,&quot;arm64&quot;]
+def osList = [&quot;linux&quot;,&quot;darwin&quot;,&quot;openbsd&quot;,&quot;freebsd&quot;,&quot;windows&quot;]
+
+def colorGreen = &quot;\033[32m&quot;
+def colorReset = &quot;\033[0m&quot;
+
+def parseVersion(text) {
+    def matcher = (text =~ /(\d+\.\d+(?:\.\d+)?)/)
+    return matcher.find() ? matcher.group(1) : &quot;unknown&quot;
+}
+
+pipeline {
+    agent {
+        label &apos;linux&apos; // Jenkins Agent with Go installed
+    }
+    options {
+        ansiColor(&apos;xterm&apos;)
+        timestamps()
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        string(
+            name: &apos;repoUrl&apos;,
+            defaultValue: &apos;https://github.com/Lifailon/lazyjournal&apos;,
+            description: &apos;Url address for copying repository using Git.&apos;
+        )
+        reactiveChoice(
+            name: &apos;branch&apos;,
+            description: &apos;Select branch.&apos;,
+            choiceType: &apos;PT_RADIO&apos;,
+            filterable: false,
+            script: [
+                $class: &apos;GroovyScript&apos;,
+                script: [
+                    sandbox: true,
+                    script: &apos;&apos;&apos;
+                        import groovy.json.JsonSlurper
+
+                        def repo = repoUrl.replaceAll(&quot;https://github.com/&quot;,&quot;https://api.github.com/repos/&quot;)
+                        def url = &quot;${repo}/branches&quot;
+                        def URL = new URL(url)
+                        def connection = URL.openConnection()
+                        connection.requestMethod = &apos;GET&apos;
+                        connection.setRequestProperty(&quot;Accept&quot;, &quot;application/vnd.github.v3+json&quot;)
+                        def response = connection.inputStream.text
+
+                        def json = new JsonSlurper().parseText(response)
+                        def branches = json.collect { it.name }
+                        return branches as List
+                    &apos;&apos;&apos;
+                ]
+            ],
+            referencedParameters: &apos;repoUrl&apos;
+        )
+        booleanParam(
+            name: &quot;update&quot;,
+            defaultValue: false,
+            description: &apos;Update dependencies.&apos;
+        )
+        choice(
+            name: &apos;testMode&apos;,
+            choices: [&apos;skip&apos;, &apos;selected&apos;,&apos;all&apos;],
+            description: &apos;Select test mode.&apos;
+        )
+        string(
+            name: &apos;testName&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Enter the test name separated by commas.&apos;
+        )
+        booleanParam(
+            name: &quot;liner&quot;,
+            defaultValue: false,
+            description: &apos;Install and run all linter check (golangci, gocritic and gosec).&apos;
+        )
+        booleanParam(
+            name: &quot;tmux&quot;,
+            defaultValue: false,
+            description: &apos;Check application launch in TMUX.&apos;
+        )
+        booleanParam(
+            name: &quot;build&quot;,
+            defaultValue: false,
+            description: &apos;Build binary for all platforms.&apos;
+        )
+        booleanParam(
+            name: &quot;upload&quot;,
+            defaultValue: false,
+            description: &apos;Upload all binary to Artifacts.&apos;
+        )
+        booleanParam(
+            name: &quot;deploy&quot;,
+            defaultValue: false,
+            description: &apos;Upload binary to remote hosts.&apos;
+        )
+        text(
+            name: &apos;addresses&apos;,
+            defaultValue: &apos;192.168.3.105\n192.168.3.106&apos;,
+            description: &apos;List of remote host addresses for install.&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            description: &apos;SSH Username with private key from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey&apos;,
+            required: true
+        )
+        string(
+            name: &apos;user&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Username for ssh connection (by default from credentials parameter).&apos;
+        )
+        string(
+            name: &apos;port&apos;,
+            defaultValue: &apos;&apos;,
+            description: &apos;Port for ssh connection (by default 22).&apos;
+        )
+        string(
+            name: &apos;binPath&apos;,
+            defaultValue: &apos;./.local/bin&apos;,
+            description: &apos;Path to install binary on remote hosts. (by default &quot;./.local/bin&quot;).&apos;
+        )
+    }
+    environment {
+        SSH_KEY_FILE = &quot;/tmp/ssh_key_${UUID.randomUUID().toString()}&quot;
+    }
+    stages {
+        stage(&apos;Git checkout&apos;) {
+            steps {
+                script {
+                    def branch = params.branch ? params.branch : &quot;main&quot;
+                    checkout scmGit(
+                        branches: [[name: branch]],
+                        userRemoteConfigs: [[url: params.repoUrl]]
+                    )
+                    sh(script: &quot;ls -lh&quot;)
+                }
+            }
+        }
+        stage(&apos;Preparing application&apos;) {
+            steps {
+                script {
+                    def urlSplit = params.repoUrl.split(&quot;/&quot;)
+                    binName = urlSplit[urlSplit.size() - 1]
+                    echo &quot;App name: ${colorGreen}${binName}${colorReset}&quot;
+                    sh(script: &quot;&quot;&quot;
+                        go fmt ./...
+                        go vet ./...
+                        go get ./...
+                        go mod tidy
+                        go mod verify
+                        go build -o /dev/null -v ./...
+                    &quot;&quot;&quot;)
+                    def currentVersion = sh(
+                        script: getVersion,
+                        returnStdout: true
+                    ).trim()
+                    echo &quot;App raw version: ${colorGreen}${currentVersion}${colorReset}&quot;
+                    appVersion = parseVersion(currentVersion)
+                    echo &quot;App version for binary name: ${colorGreen}${appVersion}${colorReset}&quot;
+                    def getHelp = sh(
+                        script: &quot;go run ./... -h 2&gt;/dev/null || go run ./... --help&quot;,
+                        returnStdout: true
+                    ).trim()
+                    echo &quot;App help:\n${getHelp}&quot;
+                }
+            }
+        }
+        stage(&apos;Update dependencies&apos;) {
+            when {
+                expression { params.update }
+            }
+            steps {
+                script {
+                    def checkCurrentVersion = sh(
+                        script: &quot;&quot;&quot;
+                            go get -u ./...
+                            ${getVersion}
+                        &quot;&quot;&quot;,
+                        returnStdout: true
+                    )
+                    echo &quot;Check raw version: ${colorGreen}${checkCurrentVersion}${colorReset}&quot;
+                }
+            }
+        }
+        stage(&apos;Get test list and run selected test&apos;) {
+            steps {
+                script {
+                    def testList = sh(
+                        script: &quot;go test -list . ./...&quot;,
+                        returnStdout: true
+                    )
+                    echo colorGreen+&quot;Test list:\n\n&quot;+testList+colorReset
+                    if (params.testMode == &quot;all&quot;) {
+                        echo &quot;Run ${colorGreen}all${colorReset} tests&quot;
+                        // sh(script: &quot;go test -v -cover ./...&quot;)
+                    } else if (params.testMode == &quot;selected&quot; &amp;&amp; params.testName.trim().size() &gt; 0) {
+                        def testName = params.testName.trim().replaceAll(/\s*,\s*/, &quot;,&quot;)
+                        echo &quot;Run selected tests: ${colorGreen}${testName}${colorReset}&quot;
+                        // sh(script: &quot;go test -v -cover --run ${testName} ./...&quot;)
+                    } else {
+                        echo &quot;Testing skipped&quot;
+                    }
+                }
+            }
+        }
+        stage(&apos;Linter check&apos;) {
+            when {
+                expression { params.liner }
+            }
+            steps {
+                script {
+                    def linterInstallJobs = [:]
+                    linterInstallJobs[&quot;golangci&quot;] = {
+                        sh(
+                            script: &quot;go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest&quot;
+                        )
+                    }
+                    linterInstallJobs[&quot;gocritic&quot;] = {
+                        sh(
+                            script: &quot;go install github.com/go-critic/go-critic/cmd/gocritic@latest&quot;
+                        )
+                    }
+                    linterInstallJobs[&quot;gosec&quot;] = {
+                        sh(
+                            script: &quot;go install github.com/securego/gosec/v2/cmd/gosec@latest&quot;
+                        )
+                    }
+                    parallel linterInstallJobs
+                    def linterCheckJobs = [:]
+                    linterCheckJobs[&quot;golangci&quot;] = {
+                        sh(
+                            script: &quot;$HOME/go/bin/golangci-lint run ./main.go&quot;
+                        )
+                    }
+                    linterCheckJobs[&quot;gocritic&quot;] = {
+                        sh(
+                            script: &quot;$HOME/go/bin/gocritic check -enableAll ./main.go&quot;
+                        )
+                    }
+                    linterCheckJobs[&quot;gosec&quot;] = {
+                        sh(
+                            script: &quot;$HOME/go/bin/gosec -severity=high ./...&quot;
+                        )
+                    }
+                    parallel linterCheckJobs
+                }
+            }
+        }
+        stage(&apos;Check application launch in TMUX&apos;) {
+            when {
+                expression { params.tmux }
+            }
+            steps {
+                script {
+                    sh(script: &quot;&quot;&quot;
+                            tmux new-session -d -s test-session &quot;go run ./...&quot;
+                            sleep 1
+                            tmux capture-pane -p
+                            tmux kill-session -t test-session
+                        &quot;&quot;&quot;
+                    )
+                }
+            }
+        }
+        stage(&apos;Build binary for all platforms&apos;) {
+            when {
+                expression { params.build }
+            }
+            steps {
+                script {
+                    sh(script: &quot;rm -rf bin &amp;&amp; mkdir -p bin&quot;)
+                    def parallelBuildJobs = [:]
+                    for (arch in archList) {
+                        for (os in osList) {
+                            def currentArch = arch
+                            def currentOS = os
+                            def ext = &quot;&quot;
+                            if (os == &quot;windows&quot;) {
+                                ext = &quot;.exe&quot; 
+                            }
+                            def buildFileName = &quot;${binName}-${appVersion}-${currentOS}-${currentArch}${ext}&quot;
+                            parallelBuildJobs[buildFileName] = {
+	                    	    echo &quot;Build file: ${colorGreen}${buildFileName}${colorReset}&quot;
+                                sh(
+                                    script: &quot;CGO_ENABLED=0 GOOS=${currentOS} GOARCH=${currentArch} go build -o bin/${buildFileName}&quot;
+                                )
+                            }
+                        }
+                    }
+                    parallel parallelBuildJobs
+                    sh(script: &quot;ls -lh bin&quot;)
+                    archAgent = sh(
+                        script: getArch,
+                        returnStdout: true
+                    ).trim()
+                    def binNameAgent = &quot;${binName}-${appVersion}-linux-${archAgent}&quot;
+                    def binVersion = sh(
+                        script: &quot;&quot;&quot;
+                            chmod +x ./bin/${binNameAgent}
+                            ./bin/${binNameAgent} -v 2&gt;/dev/null || ./bin/${binNameAgent} --version
+                        &quot;&quot;&quot;,
+                        returnStdout: true
+                    ).trim()
+                    echo &quot;Binary raw version on Agent: ${colorGreen}${binVersion}${colorReset}&quot;
+                }
+            }
+        }
+        stage(&apos;Upload all binary to Artifacts&apos;) {
+            when {
+                expression { params.upload }
+            }
+            steps {
+                script {
+                    archiveArtifacts artifacts: &quot;bin/**/*&quot;, allowEmptyArchive: true
+                }
+            }
+        }
+        stage(&apos;Get ssh credentials&apos;) {
+            when {
+                expression { params.build &amp;&amp; params.deploy }
+            }
+            steps {
+                script {
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                usernameVariable: &apos;SSH_USER&apos;,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: env.SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${env.SSH_KEY_FILE}&quot;
+                        remote.user = params.user ? params.user : SSH_USER
+                        remote.port = params.port ? params.port.toInteger() : 22
+                        remote.identityFile = env.SSH_KEY_FILE
+                        remote.allowAnyHosts = true
+                    }
+                    echo &quot;SSH username: ${remote.user}&quot;
+                    echo &quot;SSH port: ${remote.port}&quot;
+                }
+            }
+        }
+        stage(&apos;Deploy binary on remote hosts&apos;) {
+            when {
+                expression { params.build &amp;&amp; params.deploy }
+            }
+            steps {
+                script {
+                    binPath = params.binPath ? params.binPath : &quot;./.local/bin&quot;
+                    binFullPath = binPath.replaceAll(&quot;/\$&quot;, &quot;&quot;) + &quot;/&quot; + binName
+                    catchError(buildResult: &apos;SUCCESS&apos;, stageResult: &apos;UNSTABLE&apos;) {
+                        def addressList = params.addresses.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                        for (int i = 0; i &lt; addressList.size(); i++) {
+                            def address = addressList[i]
+                            remote.name = address
+                            remote.host = address
+                            def archRemoteHost = sshCommand remote: remote, command: getArch
+                            sshCommand remote: remote, command: &quot;mkdir -p ${binPath}&quot;
+                            sshPut remote: remote, from: &quot;./bin/${binName}-${appVersion}-linux-${archRemoteHost}&quot;, into: binFullPath
+                            def version = sshCommand remote: remote, command: &quot;&quot;&quot;
+                                chmod +x ${binFullPath} &gt; /dev/null;
+                                ${binFullPath} -v 2&gt; /dev/null || ${binFullPath} --version
+                            &quot;&quot;&quot;
+                            echo &quot;Deploy on ${colorGreen}${address}${colorReset} in ${colorGreen}${binFullPath}${colorReset}&quot;
+                            echo &quot;Binary raw version on ${address}: ${colorGreen}${version}${colorReset}&quot;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh &quot;&quot;&quot;
+                    ls -lh 
+                    rm -rf &quot;./* ${env.SSH_KEY_FILE}&quot;
+                    ls -lh
+                &quot;&quot;&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

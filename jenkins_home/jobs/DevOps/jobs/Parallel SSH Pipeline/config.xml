@@ -1,0 +1,164 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2258.v4e96d2b_da_f9b_">
+      <jobProperties/>
+      <triggers/>
+      <parameters>
+        <string>color</string>
+        <string>credentials</string>
+        <string>hostlist</string>
+        <string>commands</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@338.va_0a_b_50e29397">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.TextParameterDefinition>
+          <name>hostlist</name>
+          <description>List of remote host addresses.
+Format: &lt;USERNAME@HOSTNAME:PORT&gt;.</description>
+          <defaultValue>lifailon@192.168.3.105:2121
+lifailon@192.168.3.106:2121
+root@192.168.3.102
+root@192.168.3.103</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1419.v2337d1ceceef">
+          <name>credentials</name>
+          <description>SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <credentialType>com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey</credentialType>
+          <required>true</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>commands</name>
+          <description>List of commands from a new line.</description>
+          <defaultValue>uname -a
+uptime
+free -hL</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>color</name>
+          <description>Enable output coloring.</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4175.ve65b_fa_663eed">
+    <script>pipeline {
+    agent any
+    options {
+        ansiColor(&apos;xterm&apos;)
+        timeout(time: 10, unit: &apos;MINUTES&apos;)
+    }
+    parameters {
+        text(
+            name: &apos;hostlist&apos;,
+            defaultValue: &apos;lifailon@192.168.3.105:2121\nlifailon@192.168.3.106:2121\nroot@192.168.3.102\nroot@192.168.3.103&apos;,
+            description: &apos;List of remote host addresses.\nFormat: &lt;USERNAME@HOSTNAME:PORT&gt;.&apos;
+        )
+        credentials(
+            name: &apos;credentials&apos;,
+            description: &apos;SSH Username with private key from Jenkins Credentials for ssh connection.&apos;,
+            credentialType: &apos;com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey&apos;,
+            required: true
+        )
+        text(
+            name: &apos;commands&apos;,
+            defaultValue: &apos;uname -a\nuptime\nfree -hL&apos;,
+            description: &apos;List of commands from a new line.&apos;
+        )
+        booleanParam(
+            name: &quot;color&quot;,
+            defaultValue: true,
+            description: &apos;Enable output coloring.&apos;
+        )
+    }
+    environment {
+        SSH_KEY_FILE = &quot;/tmp/ssh_key_${UUID.randomUUID().toString()}&quot;
+    }
+    stages {
+        stage(&apos;Get ssh key&apos;) {
+            steps {
+                script {
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: env.SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${env.SSH_KEY_FILE}&quot;
+                    }
+                }
+            }
+        }
+        stage(&apos;Install pussh&apos;) {
+            steps {
+                script {
+                    sh &quot;&quot;&quot;
+                        curl -s https://raw.githubusercontent.com/bearstech/pussh/refs/heads/master/pussh -o pussh
+                        chmod +x ./pussh
+                    &quot;&quot;&quot;
+                }
+            }
+        }
+        stage(&apos;Run pussh&apos;) {
+            steps {
+                script {
+                    def hostlist = params.hostlist.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}.join(&apos;,&apos;)
+                    def commandsArray = params.commands.split(&apos;\n&apos;).collect{it.trim()}.findAll{it}
+                    for (command in commandsArray) {
+                        if (params.color) {
+                            sh &quot;&quot;&quot;
+                                ./pussh -c \\
+                                -s &apos;-o StrictHostKeyChecking=no -i ${SSH_KEY_FILE}&apos; \\
+                                -h ${hostlist} \\
+                                ${command}
+                            &quot;&quot;&quot;
+                        } else {
+                            sh &quot;&quot;&quot;
+                                ./pussh \\
+                                -s &apos;-o StrictHostKeyChecking=no -i ${SSH_KEY_FILE}&apos; \\
+                                -h ${hostlist} \\
+                                ${command}
+                            &quot;&quot;&quot;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                sh &quot;&quot;&quot;
+                    rm -f ./pussh ${SSH_KEY_FILE}
+                    ls -lhR
+                &quot;&quot;&quot;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
